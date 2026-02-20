@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const { title, description, podcastId, audioUrl } = await request.json()
     if (!title || !podcastId) return NextResponse.json({ error: 'Title and podcast are required' }, { status: 400 })
 
-    const podcast = await prisma.podcast.findFirst({ where: { id: podcastId, userId: session.user.id } })
+    const podcast = await prisma.podcast.findFirst({ where: { id: podcastId, userId: session.user?.id as string } })
     if (!podcast) return NextResponse.json({ error: 'Podcast not found' }, { status: 404 })
 
     const episode = await prisma.episode.create({
@@ -34,7 +34,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const episodes = await prisma.episode.findMany({
-      where: { podcast: { userId: session.user.id } },
+      where: { podcast: { userId: session.user?.id as string } },
       orderBy: { createdAt: 'desc' },
       include: { podcast: { select: { title: true } } },
     })
