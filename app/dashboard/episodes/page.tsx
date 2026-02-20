@@ -9,7 +9,7 @@ export default async function EpisodesPage() {
   if (!session) redirect('/login')
 
   const episodes = await prisma.episode.findMany({
-    where: { podcast: { userId: session.user.id } },
+    where: { podcast: { userId: session?.user?.id as string } },
     orderBy: { createdAt: 'desc' },
     include: { podcast: { select: { title: true } } },
   })
