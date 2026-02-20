@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
 
     const podcast = await prisma.podcast.create({
-      data: { title, description: description || null, userId: session.user.id },
+      data: { title, description: description || null, userId: session.user?.id as string },
     })
 
     return NextResponse.json({ message: 'Podcast created', podcast }, { status: 201 })
@@ -31,7 +31,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const podcasts = await prisma.podcast.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session.user?.id as string },
       orderBy: { createdAt: 'desc' },
     })
 
