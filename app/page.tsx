@@ -2,7 +2,7 @@ export default function HomePage() {
   return (
     <div style={{background:'#0a0a0a',minHeight:'100vh',fontFamily:'monospace',color:'#fff'}}>
       <style>{
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+        
         * { margin:0; padding:0; box-sizing:border-box; }
         :root {
           --yellow: #FFE500;
