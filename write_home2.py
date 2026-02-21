@@ -1,4 +1,5 @@
-export default function HomePage() {
+﻿with open('app/page.tsx', 'w', encoding='utf-8') as f:
+    f.write("""export default function HomePage() {
   return (
     <div style={{background:'#0a0a0a',minHeight:'100vh',fontFamily:'monospace',color:'#fff'}}>
       <style>{
@@ -201,3 +202,5 @@ export default function HomePage() {
     </div>
   )
 }
+""")
+print('Done')
