@@ -1,4 +1,5 @@
-export default function HomePage() {
+﻿with open('app/page.tsx', 'w', encoding='utf-8') as f:
+    f.write("""export default function HomePage() {
   return (
     <div style={{background:'#0a0a0a',minHeight:'100vh',color:'#fff'}}>
       <nav style={{borderBottom:'3px solid #FFE500',padding:'1rem 2rem',display:'flex',alignItems:'center',justifyContent:'space-between',background:'#0a0a0a',position:'sticky',top:0,zIndex:100}}>
@@ -54,3 +55,5 @@ export default function HomePage() {
     </div>
   )
 }
+""")
+print('Done')
