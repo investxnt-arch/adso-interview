@@ -1,3 +1,4 @@
+"use client"
 export default function HomePage() {
   return (
     <main style={{background:"#0a0a0a",minHeight:"100vh",color:"#fff",fontFamily:"monospace"}}>
