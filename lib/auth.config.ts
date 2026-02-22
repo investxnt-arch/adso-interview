@@ -41,6 +41,11 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: 'jwt' },
   
   callbacks: {
+    authorized({ auth, request }) {
+      const isPublic = ['/', '/login', '/register'].some(p => request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith('/podcast'))
+      if (isPublic) return true
+      return !!auth
+    },
     async jwt({ token, user }) {
       if (user) { token.role = (user as any).role; token.id = user.id }
       return token
