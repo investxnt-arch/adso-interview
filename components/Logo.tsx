@@ -1,7 +1,11 @@
 'use client';
 import { motion } from 'framer-motion';
 
-export default function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
+interface LogoProps {
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export default function Logo({ size = 'md' }: LogoProps) {
   const sizes = {
     sm: 'text-2xl',
     md: 'text-4xl',
