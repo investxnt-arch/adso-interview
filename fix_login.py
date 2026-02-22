@@ -1,4 +1,4 @@
-"use client"
+﻿content = '''"use client"
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 
@@ -41,4 +41,8 @@ export default function LoginPage() {
       </div>
     </main>
   )
-}
+}'''
+
+with open('app/login/page.tsx', 'w', encoding='utf-8') as f:
+    f.write(content)
+print('Done')
