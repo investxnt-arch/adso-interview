@@ -1,4 +1,4 @@
-"use client"
+﻿content = '''"use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -53,4 +53,8 @@ export default function RegisterPage() {
       </div>
     </main>
   )
-}
+}'''
+
+with open('app/register/page.tsx', 'w', encoding='utf-8') as f:
+    f.write(content)
+print('Done')
