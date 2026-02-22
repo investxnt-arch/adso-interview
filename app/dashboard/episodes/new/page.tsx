@@ -1,127 +1,117 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { MOCK_PODCASTS } from "@/types";
+import type { Podcast } from "@/types";
 
-export default function NewEpisodePage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState('')
-  const [podcasts, setPodcasts] = useState([])
-  const [fileUrl, setFileUrl] = useState('')
-  const [fileType, setFileType] = useState('')
-  const [progress, setProgress] = useState('')
+export default async function NewEpisodePage() {
+  const session = await auth();
+  if (!session) redirect("/login");
 
-  useEffect(() => {
-    fetch('/api/podcasts').then(r => r.json()).then(d => setPodcasts(d.podcasts || []))
-  }, [])
-
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    setProgress('Uploading...')
-    setFileType(file.type.startsWith('video') ? 'video' : 'audio')
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await fetch('/api/upload', { method: 'POST', body: formData })
-    const data = await res.json()
-    if (res.ok) {
-      setFileUrl(data.url)
-      setProgress('Upload complete!')
-    } else {
-      setError(data.error || 'Upload failed')
-      setProgress('')
-    }
-    setUploading(false)
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!fileUrl) { setError('Please upload a file first'); return }
-    setLoading(true)
-    setError('')
-    const formData = new FormData(e.currentTarget)
-    const res = await fetch('/api/episodes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: formData.get('title'),
-        description: formData.get('description'),
-        podcastId: formData.get('podcastId'),
-        audioUrl: fileUrl,
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) { setError(data.error || 'Error'); setLoading(false); return }
-    router.push('/dashboard/episodes')
-  }
+  const podcasts: Podcast[] = MOCK_PODCASTS;
 
   return (
-    <div className='min-h-screen bg-gray-100 flex'>
-      <aside className='w-64 bg-white shadow-md flex flex-col'>
-        <div className='p-6 border-b'>
-          <h1 className='text-xl font-bold text-blue-600'>ADSO Interview</h1>
+    <div className="min-h-screen bg-black text-white font-mono">
+      <header className="fixed top-0 w-full bg-black/95 border-b-4 border-[#FFE500] z-50">
+        <div className="flex items-center justify-between px-6 py-3">
+          <Link href="/dashboard" className="text-3xl font-black">
+            <span className="text-[#FFE500]">ADSO</span>
+            <span className="text-[#00FFD1]">tube</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[#FFE500] border-2 border-[#FFE500] px-4 py-2 rounded-full">
+              {session.user?.name?.charAt(0).toUpperCase()}
+            </span>
+          </div>
         </div>
-        <nav className='flex-1 p-4 flex flex-col gap-1'>
-          <a href='/dashboard' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>📊</span> Dashboard</a>
-          <a href='/dashboard/podcasts' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>🎙️</span> My Podcasts</a>
-          <a href='/dashboard/episodes' className='flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-semibold'><span>🎵</span> Episodes</a>
-          <a href='/dashboard/profile' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>👤</span> Profile</a>
-        </nav>
-      </aside>
-      <main className='flex-1 p-8'>
-        <div className='mb-8'>
-          <a href='/dashboard/episodes' className='text-blue-600 text-sm hover:underline'>← Back to Episodes</a>
-          <h2 className='text-2xl font-bold text-gray-900 mt-2'>Upload New Episode</h2>
-        </div>
-        <div className='bg-white rounded-xl p-8 shadow-sm border border-gray-100 max-w-2xl'>
-          {error && <p className='text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg'>{error}</p>}
-          <form onSubmit={handleSubmit} className='flex flex-col gap-5'>
-            <div>
-              <label className='block text-sm font-semibold text-gray-800 mb-1'>Podcast *</label>
-              <select name='podcastId' required className='w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500'>
-                <option value=''>Select a podcast</option>
-                {podcasts.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className='block text-sm font-semibold text-gray-800 mb-1'>Episode Title *</label>
-              <input name='title' type='text' required className='w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500' placeholder='Episode 1: Introduction' />
-            </div>
-            <div>
-              <label className='block text-sm font-semibold text-gray-800 mb-1'>Description</label>
-              <textarea name='description' rows={3} className='w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500' placeholder='What is this episode about?' />
-            </div>
-            <div>
-              <label className='block text-sm font-semibold text-gray-800 mb-2'>Audio or Video File *</label>
-              <div className='border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition'>
-                <span className='text-4xl mb-3 block'>🎬</span>
-                <p className='text-gray-600 text-sm mb-3'>Upload MP3, WAV, MP4 or MOV</p>
-                <input type='file' accept='audio/*,video/*' onChange={handleFileUpload} className='hidden' id='fileInput' />
-                <label htmlFor='fileInput' className='bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 font-semibold text-sm'>Choose File</label>
-                {progress && <p className='mt-3 text-sm text-green-600 font-medium'>{progress}</p>}
-                {fileUrl && (
-                  <div className='mt-4'>
-                    {fileType === 'video'
-                      ? <video src={fileUrl} controls className='w-full rounded-lg mt-2 max-h-48' />
-                      : <audio src={fileUrl} controls className='w-full mt-2' />
-                    }
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className='flex gap-3 pt-2'>
-              <button type='submit' disabled={loading || uploading} className='bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50'>
-                {loading ? 'Saving...' : 'Save Episode'}
-              </button>
-              <a href='/dashboard/episodes' className='border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50'>Cancel</a>
-            </div>
-          </form>
-        </div>
-      </main>
+      </header>
+
+      <div className="pt-20 p-8 max-w-3xl mx-auto">
+        <h1 className="text-4xl font-black mb-8">
+          <span className="text-[#FF006E]">CREATE</span>{" "}
+          <span className="text-[#FFE500]">NEW EPISODE</span>
+        </h1>
+
+        <form className="border-4 border-gray-800 bg-[#111] p-8 rounded-lg">
+          <div className="mb-6">
+            <label className="block text-[#00FFD1] text-sm font-mono tracking-wider mb-2">
+              EPISODE TITLE
+            </label>
+            <input
+              type="text"
+              className="w-full bg-black border-4 border-gray-800 text-white p-4 font-mono text-sm outline-none focus:border-[#00FFD1] transition-all"
+              placeholder="Enter episode title"
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-[#00FFD1] text-sm font-mono tracking-wider mb-2">
+              SELECT PODCAST
+            </label>
+            <select
+              className="w-full bg-black border-4 border-gray-800 text-white p-4 font-mono text-sm outline-none focus:border-[#00FFD1] transition-all"
+              required
+            >
+              <option value="">Choose a podcast</option>
+              {podcasts.map((podcast) => (
+                <option key={podcast.id} value={podcast.id}>
+                  {podcast.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-[#00FFD1] text-sm font-mono tracking-wider mb-2">
+              DESCRIPTION
+            </label>
+            <textarea
+              rows={5}
+              className="w-full bg-black border-4 border-gray-800 text-white p-4 font-mono text-sm outline-none focus:border-[#00FFD1] transition-all"
+              placeholder="Describe your episode..."
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-[#00FFD1] text-sm font-mono tracking-wider mb-2">
+              AUDIO FILE
+            </label>
+            <input
+              type="file"
+              accept="audio/*"
+              className="w-full bg-black border-4 border-gray-800 text-white p-4 font-mono text-sm outline-none focus:border-[#00FFD1] transition-all"
+              required
+            />
+          </div>
+
+          <div className="mb-8">
+            <label className="block text-[#00FFD1] text-sm font-mono tracking-wider mb-2">
+              DURATION (optional)
+            </label>
+            <input
+              type="text"
+              className="w-full bg-black border-4 border-gray-800 text-white p-4 font-mono text-sm outline-none focus:border-[#00FFD1] transition-all"
+              placeholder="e.g., 15:30"
+            />
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="bg-[#FFE500] text-black border-4 border-black px-8 py-4 font-bold text-sm tracking-wider shadow-[4px_4px_0_#00FFD1] hover:shadow-[6px_6px_0_#00FFD1] transition-all"
+            >
+              CREATE EPISODE
+            </button>
+            <Link
+              href="/dashboard/episodes"
+              className="bg-gray-800 text-white border-4 border-black px-8 py-4 font-bold text-sm tracking-wider hover:bg-gray-700 transition-all"
+            >
+              CANCEL
+            </Link>
+          </div>
+        </form>
+      </div>
     </div>
-  )
+  );
 }

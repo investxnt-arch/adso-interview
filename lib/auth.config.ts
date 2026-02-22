@@ -1,58 +1,109 @@
-import type { NextAuthConfig } from 'next-auth'
-import Credentials from 'next-auth/providers/credentials'
-import Google from 'next-auth/providers/google'
-import GitHub from 'next-auth/providers/github'
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import type { NextAuthConfig } from 'next-auth';
+import Google from 'next-auth/providers/google';
+import GitHub from 'next-auth/providers/github';
+import Apple from 'next-auth/providers/apple';
+import Credentials from 'next-auth/providers/credentials';
+import { compare } from 'bcryptjs';
+import { prisma } from './prisma';
 
-const prisma = new PrismaClient()
+// Extender los tipos de NextAuth
+declare module 'next-auth' {
+  interface User {
+    role?: string;
+  }
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role?: string;
+    }
+  }
+}
 
 export const authConfig: NextAuthConfig = {
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.AUTH_GOOGLE_ID || '',
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
+      allowDangerousEmailAccountLinking: true,
     }),
     GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      clientId: process.env.AUTH_GITHUB_ID || '',
+      clientSecret: process.env.AUTH_GITHUB_SECRET || '',
+      allowDangerousEmailAccountLinking: true,
+    }),
+    Apple({
+      clientId: process.env.AUTH_APPLE_ID || '',
+      clientSecret: process.env.AUTH_APPLE_SECRET || '',
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        })
-        if (!user || !user.password) return null
-        const isValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        )
-        if (!isValid) return null
-        return { id: user.id, email: user.email, name: user.name, role: user.role }
-      },
-    }),
+        const { email, password } = credentials as {
+          email: string;
+          password: string;
+        };
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email }
+          });
+
+          if (!user || !user.password) {
+            return null;
+          }
+
+          const isValid = await compare(password, user.password);
+
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role || 'user'
+          };
+        } catch (error) {
+          console.error('Error en authorize:', error);
+          return null;
+        }
+      }
+    })
   ],
-  session: { strategy: 'jwt' },
-  
   callbacks: {
-    authorized({ auth, request }) {
-      const isPublic = ['/', '/login', '/register'].some(p => request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith('/podcast'))
-      if (isPublic) return true
-      return !!auth
-    },
     async jwt({ token, user }) {
-      if (user) { token.role = (user as any).role; token.id = user.id }
-      return token
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
     },
     async session({ session, token }) {
-      if (token) { session.user.role = token.role as string; session.user.id = token.id as string }
-      return session
-    },
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+      }
+      return session;
+    }
   },
-}
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
+};

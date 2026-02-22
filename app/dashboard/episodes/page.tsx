@@ -1,40 +1,17 @@
-import { auth } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import Link from "next/link"
-
-// Datos de ejemplo
-const MOCK_EPISODES = [
-  {
-    id: "1",
-    title: "Episode 1: Introducción al podcasting",
-    description: "Aprende los conceptos básicos para empezar tu propio podcast",
-    duration: "15:30",
-    podcastId: "p1",
-    createdAt: new Date(),
-    podcast: { title: "Sample Podcast" },
-    views: 1234
-  },
-  {
-    id: "2",
-    title: "Episode 2: Equipo necesario",
-    description: "Todo lo que necesitas saber sobre micrófonos y grabación",
-    duration: "22:15",
-    podcastId: "p1",
-    createdAt: new Date(Date.now() - 86400000),
-    podcast: { title: "Sample Podcast" },
-    views: 892
-  }
-]
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { MOCK_EPISODES } from "@/types";
+import type { Episode } from "@/types";
 
 export default async function EpisodesPage() {
-  const session = await auth()
-  if (!session) redirect("/login")
+  const session = await auth();
+  if (!session) redirect("/login");
 
-  const episodes = MOCK_EPISODES
+  const episodes: Episode[] = MOCK_EPISODES;
 
   return (
     <div className="min-h-screen bg-black text-white font-mono">
-      {/* Header */}
       <header className="fixed top-0 w-full bg-black/95 border-b-4 border-[#FFE500] z-50">
         <div className="flex items-center justify-between px-6 py-3">
           <Link href="/dashboard" className="text-3xl font-black">
@@ -49,7 +26,6 @@ export default async function EpisodesPage() {
         </div>
       </header>
 
-      {/* Main content */}
       <div className="pt-20 p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-black">
@@ -78,9 +54,9 @@ export default async function EpisodesPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {episodes.map((ep: any) => (
+            {episodes.map((episode) => (
               <div
-                key={ep.id}
+                key={episode.id}
                 className="border-4 border-gray-800 bg-[#111] p-6 hover:border-[#00FFD1] transition-colors rounded-lg"
               >
                 <div className="flex items-start gap-6">
@@ -89,29 +65,30 @@ export default async function EpisodesPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-[#FFE500]">{ep.title}</h3>
+                      <h3 className="text-xl font-bold text-[#FFE500]">{episode.title}</h3>
                       <span className="text-xs bg-[#FF006E] text-white px-2 py-1 rounded-full">
-                        {ep.podcast?.title || 'No podcast'}
+                        {episode.podcast?.title || 'No podcast'}
                       </span>
                     </div>
                     <p className="text-gray-400 text-sm mb-3 line-clamp-2">
-                      {ep.description || 'No description'}
+                      {episode.description || 'No description'}
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>📅 {new Date(ep.createdAt).toLocaleDateString()}</span>
-                      <span>⏱️ {ep.duration || '0:00'}</span>
-                      <span>👁️ {ep.views || 0} views</span>
+                      <span>📅 {new Date(episode.createdAt).toLocaleDateString()}</span>
+                      <span>⏱️ {episode.duration || '0:00'}</span>
+                      <span>👁️ {episode.views || 0} views</span>
+                      <span>❤️ {episode.likes || 0} likes</span>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      href={`/podcast/${ep.podcastId}/episode/${ep.id}`}
+                      href={`/podcast/${episode.podcastId}/episode/${episode.id}`}
                       className="bg-[#00FFD1] text-black border-4 border-black px-4 py-2 text-xs font-bold rounded-lg hover:bg-[#00FFD1]/80 transition-colors"
                     >
                       PLAY
                     </Link>
                     <Link
-                      href={`/dashboard/episodes/${ep.id}/edit`}
+                      href={`/dashboard/episodes/${episode.id}/edit`}
                       className="bg-gray-800 text-white border-4 border-black px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-700 transition-colors"
                     >
                       EDIT
@@ -124,5 +101,5 @@ export default async function EpisodesPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

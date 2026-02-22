@@ -1,77 +1,72 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { auth } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import Button from "@/components/ui/Button"
+import Card from "@/components/ui/Card"
+import Input from "@/components/ui/Input"
 
 export default async function ProfilePage() {
   const session = await auth()
-  if (!session) redirect('/login')
-
-  const user = session.user
+  if (!session) redirect("/login")
 
   return (
-    <div className='min-h-screen bg-gray-100 flex'>
-      <aside className='w-64 bg-white shadow-md flex flex-col'>
-        <div className='p-6 border-b'>
-          <h1 className='text-xl font-bold text-blue-600'>ADSO Interview</h1>
-        </div>
-        <nav className='flex-1 p-4 flex flex-col gap-1'>
-          <a href='/dashboard' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>📊</span> Dashboard</a>
-          <a href='/dashboard/podcasts' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>🎙️</span> My Podcasts</a>
-          <a href='/dashboard/episodes' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>🎵</span> Episodes</a>
-          <a href='/dashboard/profile' className='flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-semibold'><span>👤</span> Profile</a>
-          <a href='/dashboard/settings' className='flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 font-medium'><span>⚙️</span> Settings</a>
-        </nav>
-      </aside>
-      <main className='flex-1 p-8'>
-        <div className='mb-8'>
-          <h2 className='text-2xl font-bold text-gray-900'>My Profile</h2>
-          <p className='text-gray-500 text-sm mt-1'>Your personal information</p>
-        </div>
-        <div className='max-w-2xl flex flex-col gap-6'>
-          <div className='bg-white rounded-xl p-8 shadow-sm border border-gray-100'>
-            <div className='flex items-center gap-6 mb-8'>
-              <div className='w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-4xl shadow'>
-                {(user?.name || user?.email || 'U')[0].toUpperCase()}
-              </div>
-              <div>
-                <h3 className='text-xl font-bold text-gray-900'>{user?.name || 'No name'}</h3>
-                <p className='text-gray-500'>{user?.email}</p>
-                <span className='mt-1 inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full'>User</span>
-              </div>
+    <div className="min-h-screen bg-black text-white font-mono p-8">
+      <h1 className="text-4xl font-black mb-8">
+        <span className="text-[#FF006E]">YOUR</span>{" "}
+        <span className="text-[#FFE500]">PROFILE</span>
+      </h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Avatar y stats */}
+        <Card variant="highlight" className="text-center">
+          <div className="w-32 h-32 mx-auto bg-gray-900 border-4 border-[#FFE500] rounded-full flex items-center justify-center mb-4">
+            <span className="text-5xl">👤</span>
+          </div>
+          <h2 className="text-2xl font-bold text-[#FFE500] mb-2">
+            {session.user?.name}
+          </h2>
+          <p className="text-gray-400 mb-4">{session.user?.email}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[#00FFD1] text-xl font-bold">12</p>
+              <p className="text-xs text-gray-500">Podcasts</p>
             </div>
-            <div className='flex flex-col gap-4'>
-              <div className='flex flex-col gap-1'>
-                <label className='text-sm font-semibold text-gray-700'>Full Name</label>
-                <div className='border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50'>{user?.name || 'Not set'}</div>
-              </div>
-              <div className='flex flex-col gap-1'>
-                <label className='text-sm font-semibold text-gray-700'>Email</label>
-                <div className='border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50'>{user?.email}</div>
-              </div>
-              <div className='flex flex-col gap-1'>
-                <label className='text-sm font-semibold text-gray-700'>Member Since</label>
-                <div className='border border-gray-200 rounded-lg px-4 py-3 text-gray-900 bg-gray-50'>February 2026</div>
-              </div>
+            <div>
+              <p className="text-[#00FFD1] text-xl font-bold">48</p>
+              <p className="text-xs text-gray-500">Episodes</p>
+            </div>
+            <div>
+              <p className="text-[#00FFD1] text-xl font-bold">1.2K</p>
+              <p className="text-xs text-gray-500">Plays</p>
             </div>
           </div>
-          <div className='bg-white rounded-xl p-6 shadow-sm border border-gray-100'>
-            <h3 className='font-bold text-gray-900 mb-4'>Account Stats</h3>
-            <div className='grid grid-cols-3 gap-4'>
-              <div className='text-center p-4 bg-blue-50 rounded-xl'>
-                <p className='text-2xl font-bold text-blue-600'>0</p>
-                <p className='text-xs text-gray-500 mt-1'>Podcasts</p>
-              </div>
-              <div className='text-center p-4 bg-green-50 rounded-xl'>
-                <p className='text-2xl font-bold text-green-600'>0</p>
-                <p className='text-xs text-gray-500 mt-1'>Episodes</p>
-              </div>
-              <div className='text-center p-4 bg-purple-50 rounded-xl'>
-                <p className='text-2xl font-bold text-purple-600'>0</p>
-                <p className='text-xs text-gray-500 mt-1'>Total Plays</p>
-              </div>
+        </Card>
+
+        {/* Formulario de edición */}
+        <Card className="lg:col-span-2">
+          <h3 className="text-[#FF006E] text-sm font-bold tracking-wider mb-6">
+            EDIT PROFILE
+          </h3>
+          <form className="space-y-6">
+            <Input
+              label="DISPLAY NAME"
+              defaultValue={session.user?.name || ''}
+            />
+            <Input
+              label="EMAIL"
+              type="email"
+              defaultValue={session.user?.email || ''}
+            />
+            <Input
+              label="BIO"
+              placeholder="Tell your story..."
+            />
+            <div className="flex gap-4">
+              <Button type="submit" variant="primary">SAVE CHANGES</Button>
+              <Button variant="outline">CANCEL</Button>
             </div>
-          </div>
-        </div>
-      </main>
+          </form>
+        </Card>
+      </div>
     </div>
   )
 }

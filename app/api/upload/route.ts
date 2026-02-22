@@ -1,35 +1,71 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import cloudinary from '@/lib/cloudinary'
+import { NextRequest, NextResponse } from 'next/server';
+import { v2 as cloudinary } from 'cloudinary';
+import { auth } from '@/lib/auth';
 
-export async function POST(request: Request) {
+// Configuración de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return NextResponse.json({ error: 'No se encontró archivo' }, { status: 400 });
+    }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    // Convertir File a buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
+    // Subir a Cloudinary usando Promesa
+    const uploadPromise = new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
         {
+          folder: 'podcast-saas',
           resource_type: 'auto',
-          folder: 'adso-interview',
         },
         (error, result) => {
-          if (error) reject(error)
-          else resolve(result)
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
         }
-      ).end(buffer)
-    })
+      );
+      
+      uploadStream.end(buffer);
+    });
 
-    return NextResponse.json({ url: (result as any).secure_url }, { status: 200 })
+    const result = await uploadPromise;
+    
+    // Usar type assertion con un tipo más específico
+    interface CloudinaryResult {
+      secure_url: string;
+      public_id: string;
+      format: string;
+      duration?: number;
+    }
+    
+    return NextResponse.json({ 
+      url: (result as CloudinaryResult).secure_url,
+      publicId: (result as CloudinaryResult).public_id 
+    });
+    
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Error uploading file' }, { status: 500 })
+    console.error('Error al subir a Cloudinary:', error);
+    return NextResponse.json(
+      { error: 'Error al subir el archivo' },
+      { status: 500 }
+    );
   }
 }
