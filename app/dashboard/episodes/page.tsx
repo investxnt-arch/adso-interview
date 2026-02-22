@@ -1,12 +1,37 @@
+'use client';
+
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MOCK_EPISODES } from "@/types";
 import type { Episode } from "@/types";
+import { usePlayer } from '@/contexts/PlayerContext';
+import { useEffect, useState } from "react";
 
-export default async function EpisodesPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
+export default function EpisodesPage() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { play } = usePlayer();
+
+  useEffect(() => {
+    const loadSession = async () => {
+      const sessionData = await auth();
+      if (!sessionData) {
+        redirect("/login");
+      }
+      setSession(sessionData);
+      setLoading(false);
+    };
+    loadSession();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white font-mono flex items-center justify-center">
+        <div className="text-[#00FFD1]">LOADING...</div>
+      </div>
+    );
+  }
 
   const episodes: Episode[] = MOCK_EPISODES;
 
@@ -20,7 +45,7 @@ export default async function EpisodesPage() {
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm text-[#FFE500] border-2 border-[#FFE500] px-4 py-2 rounded-full">
-              {session.user?.name?.charAt(0).toUpperCase()}
+              {session?.user?.name?.charAt(0).toUpperCase()}
             </span>
           </div>
         </div>
@@ -81,12 +106,19 @@ export default async function EpisodesPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Link
-                      href={`/podcast/${episode.podcastId}/episode/${episode.id}`}
+                    {/* 🔥 BOTÓN PLAY MODIFICADO PARA USAR EL REPRODUCTOR GLOBAL */}
+                    <button
+                      onClick={() => play({
+                        id: episode.id,
+                        title: episode.title,
+                        audioUrl: episode.audioUrl,
+                        podcastTitle: episode.podcast?.title || 'Unknown Podcast',
+                        coverImage: episode.podcast?.coverImage || undefined
+                      })}
                       className="bg-[#00FFD1] text-black border-4 border-black px-4 py-2 text-xs font-bold rounded-lg hover:bg-[#00FFD1]/80 transition-colors"
                     >
                       PLAY
-                    </Link>
+                    </button>
                     <Link
                       href={`/dashboard/episodes/${episode.id}/edit`}
                       className="bg-gray-800 text-white border-4 border-black px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-700 transition-colors"
