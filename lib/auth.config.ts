@@ -22,6 +22,13 @@ declare module 'next-auth' {
   }
 }
 
+declare module '@auth/core/jwt' {
+  interface JWT {
+    id?: string;
+    role?: string;
+  }
+}
+
 export const authConfig: NextAuthConfig = {
   providers: [
     Google({
@@ -29,16 +36,19 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.AUTH_GOOGLE_SECRET || '',
       allowDangerousEmailAccountLinking: true,
     }),
+    
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID || '',
       clientSecret: process.env.AUTH_GITHUB_SECRET || '',
       allowDangerousEmailAccountLinking: true,
     }),
+    
     Apple({
       clientId: process.env.AUTH_APPLE_ID || '',
       clientSecret: process.env.AUTH_APPLE_SECRET || '',
       allowDangerousEmailAccountLinking: true,
     }),
+    
     Credentials({
       name: 'credentials',
       credentials: {
@@ -79,6 +89,7 @@ export const authConfig: NextAuthConfig = {
       }
     })
   ],
+  
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -87,6 +98,7 @@ export const authConfig: NextAuthConfig = {
       }
       return token;
     },
+    
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
@@ -94,30 +106,31 @@ export const authConfig: NextAuthConfig = {
       }
       return session;
     },
-    // 🔐 CALLBACK PARA PROTEGER RUTAS (NUEVO)
+    
     authorized: ({ auth, request }) => {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = request.nextUrl.pathname.startsWith('/dashboard');
-      const isOnExplore = request.nextUrl.pathname.startsWith('/explore');
-      const isOnApiProtected = request.nextUrl.pathname.startsWith('/api/protected');
+      const pathname = request.nextUrl.pathname;
       
-      // Proteger dashboard, explore y APIs protegidas
-      if (isOnDashboard || isOnExplore || isOnApiProtected) {
+      // Proteger rutas del dashboard y explore
+      if (pathname.startsWith('/dashboard') || pathname.startsWith('/explore')) {
         return isLoggedIn;
       }
       
-      // Permitir todas las demás rutas
+      // Permitir todas las demás rutas (login, register, home, etc.)
       return true;
     },
   },
+  
   pages: {
     signIn: '/login',
     error: '/login',
   },
+  
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 30 * 24 * 60 * 60, // 30 días
   },
+  
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
