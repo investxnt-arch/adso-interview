@@ -1,21 +1,9 @@
-import { withAuth } from "next-auth/middleware"
-import { NextResponse } from "next/server"
-
-export default withAuth(
-  function middleware(req) {
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token
-    },
-  }
-)
+export { default } from "next-auth/middleware"
 
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/api/protected/:path*",
-    "/explore/:path*"
+    "/explore/:path*",
+    "/api/protected/:path*"
   ]
 }
