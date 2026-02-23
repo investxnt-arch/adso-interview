@@ -46,7 +46,7 @@ function LoginContent() {
         </div>
 
         <div className="space-y-4">
-          {/* ✅ BOTÓN DE GITHUB CORREGIDO */}
+          {/* ✅ BOTÓN DE GITHUB CON CALLBACK CORRECTO */}
           <motion.button
             onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-fuchsia-500 rounded-lg bg-black hover:bg-fuchsia-500/10 transition-all"
