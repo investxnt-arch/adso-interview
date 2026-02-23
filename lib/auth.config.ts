@@ -6,7 +6,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from './prisma';
 
-// Extender los tipos de NextAuth
+// Extender los tipos de NextAuth (esto SÍ es correcto)
 declare module 'next-auth' {
   interface User {
     role?: string;
@@ -22,12 +22,7 @@ declare module 'next-auth' {
   }
 }
 
-declare module '@auth/core/jwt' {
-  interface JWT {
-    id?: string;
-    role?: string;
-  }
-}
+// ❌ ELIMINADA la declaración incorrecta del módulo '@auth/core/jwt'
 
 export const authConfig: NextAuthConfig = {
   providers: [
