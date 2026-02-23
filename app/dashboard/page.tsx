@@ -77,7 +77,11 @@ const STATS = [
 
 export default async function DashboardPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  
+  // 🔐 REDIRECCIÓN SI NO HAY SESIÓN
+  if (!session) {
+    redirect("/login")
+  }
 
   return (
     <div className="min-h-screen bg-black text-white font-mono">
