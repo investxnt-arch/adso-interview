@@ -93,7 +93,22 @@ export const authConfig: NextAuthConfig = {
         session.user.role = token.role as string;
       }
       return session;
-    }
+    },
+    // 🔐 CALLBACK PARA PROTEGER RUTAS (NUEVO)
+    authorized: ({ auth, request }) => {
+      const isLoggedIn = !!auth?.user;
+      const isOnDashboard = request.nextUrl.pathname.startsWith('/dashboard');
+      const isOnExplore = request.nextUrl.pathname.startsWith('/explore');
+      const isOnApiProtected = request.nextUrl.pathname.startsWith('/api/protected');
+      
+      // Proteger dashboard, explore y APIs protegidas
+      if (isOnDashboard || isOnExplore || isOnApiProtected) {
+        return isLoggedIn;
+      }
+      
+      // Permitir todas las demás rutas
+      return true;
+    },
   },
   pages: {
     signIn: '/login',
