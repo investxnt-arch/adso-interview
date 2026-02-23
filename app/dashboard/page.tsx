@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { Play } from 'lucide-react'
+import Link from "next/link"
+import { Play, Upload } from 'lucide-react'
 
 const VIDEO = {
   id: 1,
@@ -46,6 +47,14 @@ export default async function DashboardPage() {
           <p className="text-gray-500 text-sm mt-1">{VIDEO.views} vistas • {VIDEO.time}</p>
         </div>
       </div>
+
+      {/* ✅ BOTÓN FLOTANTE PARA SUBIR VIDEO (NUEVO) */}
+      <Link
+        href="/dashboard/upload"
+        className="fixed bottom-8 right-8 bg-[#FF006E] text-white p-4 rounded-full shadow-[0_0_30px_#FF006E] hover:bg-[#FF006E]/80 transition-all z-50"
+      >
+        <Upload className="w-6 h-6" />
+      </Link>
     </div>
   )
 }
