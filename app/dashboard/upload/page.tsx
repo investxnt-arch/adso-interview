@@ -24,7 +24,6 @@ export default function UploadPage() {
 
     setUploading(true);
     
-    // Simular progreso de subida
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
@@ -35,7 +34,6 @@ export default function UploadPage() {
       });
     }, 500);
 
-    // Aquí iría la lógica real de subida a tu servidor/cloudinary
     setTimeout(() => {
       clearInterval(interval);
       setProgress(100);
@@ -47,25 +45,25 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header con navegación */}
+      {/* Header */}
       <header className="border-b border-gray-800 p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors">
             <ChevronLeft className="w-5 h-5" />
-            <span>VOLVER AL DASHBOARD</span>
+            <span>BACK TO DASHBOARD</span>
           </Link>
           <h1 className="text-2xl font-bold">
-            <span className="text-[#FFE500]">SUBIR</span>{' '}
+            <span className="text-[#FFE500]">UPLOAD</span>{' '}
             <span className="text-[#00FFD1]">VIDEO</span>
           </h1>
-          <div className="w-20"></div> {/* Espacio vacío para centrar */}
+          <div className="w-20"></div>
         </div>
       </header>
 
-      {/* Contenido principal */}
+      {/* Upload form */}
       <div className="max-w-3xl mx-auto p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Área de subida de archivo */}
+          {/* File area */}
           <div className="border-4 border-dashed border-[#00FFD1] rounded-2xl p-12 text-center hover:border-[#FF006E] transition-all bg-gray-900/50">
             {!file ? (
               <div className="space-y-6">
@@ -75,7 +73,7 @@ export default function UploadPage() {
                     htmlFor="file-upload"
                     className="inline-block bg-[#FF006E] text-white px-8 py-4 rounded-xl text-lg font-bold cursor-pointer hover:bg-[#FF006E]/80 transition-all shadow-[0_0_20px_#FF006E]"
                   >
-                    SELECCIONAR ARCHIVO
+                    SELECT FILE
                   </label>
                   <input
                     id="file-upload"
@@ -85,7 +83,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI - Máx 1GB</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI - Max 1GB</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -111,40 +109,40 @@ export default function UploadPage() {
             )}
           </div>
 
-          {/* Título del video */}
+          {/* Title */}
           <div className="space-y-2">
             <label className="block text-[#00FFD1] font-bold font-mono tracking-wider">
-              TÍTULO DEL VIDEO
+              VIDEO TITLE
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Mi primer podcast"
+              placeholder="e.g., My first podcast"
               className="w-full bg-black border-4 border-gray-800 rounded-xl px-6 py-4 text-white placeholder-gray-600 text-lg focus:border-[#00FFD1] focus:outline-none transition-all font-mono"
               required
             />
           </div>
 
-          {/* Descripción */}
+          {/* Description */}
           <div className="space-y-2">
             <label className="block text-[#00FFD1] font-bold font-mono tracking-wider">
-              DESCRIPCIÓN
+              DESCRIPTION
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe tu video..."
+              placeholder="Describe your video..."
               rows={5}
               className="w-full bg-black border-4 border-gray-800 rounded-xl px-6 py-4 text-white placeholder-gray-600 text-lg focus:border-[#00FFD1] focus:outline-none transition-all font-mono resize-none"
             />
           </div>
 
-          {/* Barra de progreso */}
+          {/* Progress bar */}
           {uploading && (
             <div className="space-y-3">
               <div className="flex justify-between font-mono">
-                <span className="text-[#00FFD1]">SUBIDO</span>
+                <span className="text-[#00FFD1]">UPLOADING</span>
                 <span className="text-[#FF006E]">{progress}%</span>
               </div>
               <div className="w-full bg-gray-900 rounded-full h-6 overflow-hidden border-2 border-gray-800">
@@ -156,7 +154,7 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* Botones de acción */}
+          {/* Buttons */}
           <div className="flex gap-6 pt-4">
             <button
               type="submit"
@@ -164,13 +162,13 @@ export default function UploadPage() {
               className="flex-1 bg-[#FFE500] text-black font-bold py-5 rounded-xl border-4 border-black hover:bg-[#FFE500]/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xl font-mono shadow-[4px_4px_0_#00FFD1] hover:shadow-[6px_6px_0_#00FFD1]"
             >
               <Upload className="w-6 h-6 inline mr-3" />
-              PUBLICAR VIDEO
+              PUBLISH VIDEO
             </button>
             <Link
               href="/dashboard"
               className="px-8 bg-gray-800 text-white font-bold py-5 rounded-xl border-4 border-gray-700 hover:bg-gray-700 transition-all text-xl font-mono"
             >
-              CANCELAR
+              CANCEL
             </Link>
           </div>
         </form>
