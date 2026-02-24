@@ -1,3 +1,4 @@
+'use client';
 import Link from "next/link"
 import { Play, Podcast, Mic, Users, TrendingUp } from 'lucide-react'
 
@@ -10,15 +11,15 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#00FFD110_0%,transparent_60%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#00FFD110_1px,transparent_1px),linear-gradient(to_bottom,#00FFD110_1px,transparent_1px)] bg-[size:40px_40px]" />
         
-        {/* Líneas de luz animadas */}
+        {/* Líneas de luz animadas con Tailwind */}
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-[200px] h-[2px] bg-gradient-to-r from-transparent via-[#00FFD1] to-transparent"
+            className="absolute w-[200px] h-[2px] bg-gradient-to-r from-transparent via-[#00FFD1] to-transparent animate-slide"
             style={{
               top: `${30 + i * 30}%`,
               left: '-200px',
-              animation: `moveRight 8s linear infinite ${i * 2}s`
+              animationDelay: `${i * 2}s`
             }}
           />
         ))}
@@ -138,12 +139,16 @@ export default function HomePage() {
         <p className="text-xs mt-2 text-[#00FFD1]/40">&lt; SYSTEM ONLINE /&gt;</p>
       </footer>
 
-      <style jsx>{`
-        @keyframes moveRight {
+      {/* Agregar estilos de animación personalizados en el global CSS */}
+      <style jsx global>{`
+        @keyframes slide {
           from { left: -200px; opacity: 0; }
           20% { opacity: 1; }
           80% { opacity: 1; }
           to { left: 100%; opacity: 0; }
+        }
+        .animate-slide {
+          animation: slide 8s linear infinite;
         }
       `}</style>
     </div>
