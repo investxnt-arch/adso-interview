@@ -5,14 +5,14 @@ import { Play, Upload, ThumbsUp, MessageCircle, Share2 } from 'lucide-react'
 
 const VIDEO = {
   id: 1,
-  title: "🎙 How to start your podcast in 2026",
+  title: " ",  // ✅ VACÍO - se llenará cuando subas videos
   channel: "ADSO Academy",
   views: "12.4K",
   time: "2 days ago",
   duration: "15:30",
   thumbnail: "🎥",
   likes: 234,
-  description: "Complete guide to start your own podcast. From equipment to distribution, we cover everything you need to know."
+  description: " "  // ✅ VACÍO
 }
 
 const COMMENTS = [
@@ -75,7 +75,7 @@ export default async function DashboardPage() {
 
         {/* Video info */}
         <div className="mt-6">
-          <h1 className="text-3xl font-bold text-[#FFE500]">{VIDEO.title}</h1>
+          {/* ✅ TÍTULO ELIMINADO - ahora está vacío */}
           <div className="flex items-center justify-between mt-2">
             <div>
               <p className="text-[#00FFD1]">{VIDEO.channel}</p>
@@ -96,9 +96,7 @@ export default async function DashboardPage() {
               </button>
             </div>
           </div>
-          <p className="mt-4 text-gray-300 border-l-4 border-[#FF006E] pl-4 py-2 bg-gray-900/50 rounded-r-xl">
-            {VIDEO.description}
-          </p>
+          {/* ✅ DESCRIPCIÓN ELIMINADA - ahora está vacía */}
         </div>
 
         {/* Comments section */}

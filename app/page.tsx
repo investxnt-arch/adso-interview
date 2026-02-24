@@ -33,10 +33,13 @@ export default function HomePage() {
           <p className="text-2xl md:text-4xl text-[#FF006E] mb-8 tracking-[0.3em] font-mono">
             CREATE · SHARE · DOMINATE
           </p>
+          
+          {/* ✅ TEXTO ACTUALIZADO - MÁS CREATIVO (SIN "CYBERPUNK") */}
           <p className="text-gray-400 text-lg mb-12 max-w-2xl mx-auto font-mono">
-            The ultimate cyberpunk platform for podcasters. Upload your content, 
-            reach millions, and dominate the audio world.
+            The ultimate platform for next-gen creators. Upload your voice,
+            reach millions, and make your mark in the audio universe.
           </p>
+          
           <div className="flex gap-6 justify-center">
             <Link
               href="/login"
