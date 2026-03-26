@@ -1,21 +1,8 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
-
-interface VideoData {
-  id: number;
-  title: string;
-  description: string;
-  url: string;
-  channel: string;
-  views: number;
-  time: string;
-  duration: string;
-  thumbnail: string;
-  createdAt: string;
-}
 
 export default function UploadPage() {
   const router = useRouter();
@@ -30,13 +17,11 @@ export default function UploadPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      // Validar tipo de archivo
       const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
       if (!validTypes.includes(selectedFile.type)) {
         setError('Invalid file type. Please upload MP4, MOV, AVI, or WEBM');
         return;
       }
-      // Límite de 500MB (más que suficiente para videos cortos)
       if (selectedFile.size > 500 * 1024 * 1024) {
         setError('File too large. Max 500MB for now.');
         return;
@@ -76,25 +61,7 @@ export default function UploadPage() {
       xhr.onload = async () => {
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
-          
-          const videos: VideoData[] = JSON.parse(localStorage.getItem('adsotube_videos') || '[]');
-          const newVideo: VideoData = {
-            id: Date.now(),
-            title,
-            description,
-            url: response.url,
-            channel: sessionStorage.getItem('userName') || 'You',
-            views: 0,
-            time: 'just now',
-            duration: file ? `${Math.round(file.size / (1024 * 1024))} MB` : '--:--',
-            thumbnail: '🎥',
-            createdAt: new Date().toISOString()
-          };
-          
-          videos.unshift(newVideo);
-          localStorage.setItem('adsotube_videos', JSON.stringify(videos));
-          
-          setSuccess('Video uploaded successfully! Redirecting...');
+          setSuccess('✅ Video uploaded successfully! Redirecting to dashboard...');
           setTimeout(() => {
             router.push('/dashboard');
           }, 1500);
@@ -106,7 +73,7 @@ export default function UploadPage() {
       };
 
       xhr.onerror = () => {
-        setError('Upload failed. Network error. Please check your connection.');
+        setError('Upload failed. Network error.');
         setUploading(false);
       };
 
@@ -182,7 +149,6 @@ export default function UploadPage() {
                       <p className="text-gray-500 font-mono">
                         {(file.size / (1024 * 1024)).toFixed(2)} MB
                       </p>
-                      <p className="text-xs text-gray-600 mt-1">{file.type}</p>
                     </div>
                   </div>
                   <button
