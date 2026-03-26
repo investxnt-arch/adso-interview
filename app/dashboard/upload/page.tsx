@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
+import { put } from '@vercel/blob';
 
 interface VideoData {
   id: string;
@@ -36,11 +37,6 @@ export default function UploadPage() {
         setError('Invalid file type. Please upload MP4, MOV, AVI, or WEBM');
         return;
       }
-      // Vercel Blob soporta hasta 4.5GB, pero ponemos límite razonable
-      if (selectedFile.size > 500 * 1024 * 1024) {
-        setError('File too large. Max 500MB for now.');
-        return;
-      }
       setFile(selectedFile);
       setError('');
     }
@@ -58,69 +54,55 @@ export default function UploadPage() {
     setSuccess('');
     setProgress(0);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('description', description);
+    try {
+      // SUBIDA DIRECTA A VERCEL BLOB - NO PASA POR LA API
+      const sanitizedName = file.name
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9.\-]/g, '')
+        .toLowerCase();
+      
+      const fileName = `videos/${Date.now()}-${sanitizedName}`;
+      
+      const blob = await put(fileName, file, {
+        access: 'public',
+        contentType: file.type || 'video/mp4',
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(percent);
+          }
+        },
+      });
 
-    const xhr = new XMLHttpRequest();
+      console.log('✅ Video uploaded! URL:', blob.url);
 
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded * 100) / event.total);
-        setProgress(percent);
-      }
-    });
+      const newVideo: VideoData = {
+        id: `vid_${Date.now()}`,
+        title,
+        description,
+        url: blob.url,
+        contentType: file.type || 'video/mp4',
+        channel: 'You',
+        views: 0,
+        time: 'just now',
+        duration: `${Math.round(file.size / (1024 * 1024))} MB`,
+        thumbnail: '🎥',
+        createdAt: new Date().toISOString(),
+      };
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          console.log('✅ Video uploaded! URL:', response.url);
+      const stored = localStorage.getItem('adsotube_videos');
+      const videos: VideoData[] = stored ? JSON.parse(stored) : [];
+      videos.unshift(newVideo);
+      localStorage.setItem('adsotube_videos', JSON.stringify(videos));
 
-          const newVideo: VideoData = {
-            id: response.id ?? `vid_${Date.now()}`,
-            title,
-            description,
-            url: response.url,
-            contentType: response.contentType ?? 'video/mp4',
-            channel: 'You',
-            views: 0,
-            time: 'just now',
-            duration: '--:--',
-            thumbnail: '🎥',
-            createdAt: new Date().toISOString(),
-          };
+      setSuccess('✅ Video uploaded! Redirecting...');
+      setTimeout(() => router.push('/dashboard'), 1500);
 
-          const stored = localStorage.getItem('adsotube_videos');
-          const videos: VideoData[] = stored ? JSON.parse(stored) : [];
-          videos.unshift(newVideo);
-          localStorage.setItem('adsotube_videos', JSON.stringify(videos));
-
-          setSuccess('✅ Video uploaded! Redirecting...');
-          setTimeout(() => router.push('/dashboard'), 1500);
-        } catch (err) {
-          setError('Error processing server response');
-          setUploading(false);
-        }
-      } else {
-        let errorMessage = `Upload failed (HTTP ${xhr.status})`;
-        try {
-          const err = JSON.parse(xhr.responseText);
-          if (err.error) errorMessage = err.error;
-        } catch { /* body is not JSON */ }
-        setError(errorMessage);
-        setUploading(false);
-      }
-    };
-
-    xhr.onerror = () => {
-      setError('Network error. Please check your connection.');
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setUploading(false);
-    };
-
-    xhr.open('POST', '/api/upload');
-    xhr.send(formData);
+    }
   };
 
   return (
@@ -172,7 +154,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Max 500MB</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — No size limit (Vercel Blob)</p>
               </div>
             ) : (
               <div className="space-y-6">
