@@ -24,18 +24,15 @@ function VideoPlayer({ url, contentType }: { url: string; contentType?: string }
     const el = ref.current;
     if (!el || !url) return;
     setErrorCode(null);
-    // ✅ FIX PRINCIPAL: asignar src y llamar load() manualmente
-    // key= no es suficiente — el browser ignora cambios de src
-    // sin llamar explícitamente a .load()
     el.src = url;
     el.load();
   }, [url]);
 
   const errorMessages: Record<number, string> = {
-    1: 'Carga abortada',
-    2: 'Error de red — verifica tu conexión',
-    3: 'Error al decodificar el video',
-    4: 'Formato no soportado por este navegador',
+    1: 'Load aborted',
+    2: 'Network error - check your connection',
+    3: 'Error decoding video',
+    4: 'Format not supported by this browser',
   };
 
   return (
@@ -43,15 +40,15 @@ function VideoPlayer({ url, contentType }: { url: string; contentType?: string }
       {errorCode !== null && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/90 text-sm">
           <span className="text-[#FF006E] font-mono">
-            ⚠ {errorMessages[errorCode] ?? `Error código ${errorCode}`}
+            ⚠ {errorMessages[errorCode] ?? `Error code ${errorCode}`}
           </span>
-          
+          <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#00FFD1] underline underline-offset-2 hover:text-white font-mono text-xs"
           >
-            Abrir video directamente →
+            Open video directly
           </a>
         </div>
       )}
@@ -64,12 +61,10 @@ function VideoPlayer({ url, contentType }: { url: string; contentType?: string }
         onError={() => {
           const code = ref.current?.error?.code ?? 0;
           setErrorCode(code);
-          console.error(`[VideoPlayer] Error código ${code} — URL:`, url);
+          console.error(`[VideoPlayer] Error code ${code} - URL:`, url);
         }}
         onCanPlay={() => setErrorCode(null)}
       >
-        {/* ✅ Sin src aquí — lo inyecta el useEffect */}
-        {/* ✅ type= requerido por Safari y Firefox */}
         <source type={contentType ?? 'video/mp4'} />
         <source type="video/webm" />
       </video>
@@ -82,9 +77,6 @@ export default function DashboardPage() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIX: leer localStorage dentro de useEffect
-  // En Next.js el server no tiene window — leerlo fuera causa crash o
-  // devuelve vacío antes de que el cliente hidrate
   useEffect(() => {
     try {
       const stored = localStorage.getItem('adsotube_videos');
@@ -94,7 +86,7 @@ export default function DashboardPage() {
         if (parsed.length > 0) setSelectedVideo(parsed[0]);
       }
     } catch (err) {
-      console.error('[Dashboard] Error leyendo localStorage:', err);
+      console.error('[Dashboard] Error loading videos:', err);
     } finally {
       setLoading(false);
     }
@@ -109,7 +101,7 @@ export default function DashboardPage() {
         if (parsed.length > 0 && !selectedVideo) setSelectedVideo(parsed[0]);
       }
     } catch (err) {
-      console.error('[Dashboard] Error al refrescar:', err);
+      console.error('[Dashboard] Error refreshing:', err);
     }
   };
 
@@ -125,12 +117,12 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6">
         <div className="text-6xl">🎥</div>
-        <h2 className="text-2xl font-bold text-[#FFE500]">No hay videos todavía</h2>
+        <h2 className="text-2xl font-bold text-[#FFE500]">No videos yet</h2>
         <Link
           href="/dashboard/upload"
           className="bg-[#FF006E] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#FF006E]/80 transition-all shadow-[0_0_20px_#FF006E]"
         >
-          SUBIR PRIMER VIDEO
+          UPLOAD FIRST VIDEO
         </Link>
       </div>
     );
@@ -141,7 +133,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto p-6">
-
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-[#FFE500]">ADSOTUBE</h1>
@@ -182,7 +173,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(currentVideo.url);
-                  alert('¡Link copiado!');
+                  alert('Link copied!');
                 }}
                 className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors"
               >
