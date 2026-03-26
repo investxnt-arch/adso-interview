@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
 
 interface VideoData {
-  id: number;
+  id: string;
   title: string;
   description: string;
   url: string;
+  contentType: string;
   channel: string;
   views: number;
   time: string;
@@ -36,7 +37,7 @@ export default function UploadPage() {
         return;
       }
       if (selectedFile.size > 500 * 1024 * 1024) {
-        setError('File too large. Max 500MB for now.');
+        setError('File too large. Max 500MB.');
         return;
       }
       setFile(selectedFile);
@@ -61,62 +62,94 @@ export default function UploadPage() {
     formData.append('title', title);
     formData.append('description', description);
 
-    try {
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgress(percent);
-        }
-      });
+    const xhr = new XMLHttpRequest();
 
-      xhr.onload = async () => {
-        if (xhr.status === 200) {
-          const response = JSON.parse(xhr.responseText);
-          console.log('✅ Video uploaded! URL:', response.url);
-          
-          // Guardar en localStorage con la URL correcta
-          const videos: VideoData[] = JSON.parse(localStorage.getItem('adsotube_videos') || '[]');
-          const newVideo: VideoData = {
-            id: Date.now(),
-            title: title,
-            description: description,
-            url: response.url,
-            channel: 'You',
-            views: 0,
-            time: 'just now',
-            duration: file ? `${Math.round(file.size / (1024 * 1024))} MB` : '--:--',
-            thumbnail: '🎥',
-            createdAt: new Date().toISOString()
-          };
-          
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded * 100) / event.total);
+        setProgress(percent);
+      }
+    });
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        let response: {
+          success: boolean;
+          url: string;
+          downloadUrl?: string;
+          contentType?: string;
+          id?: string;
+        };
+
+        try {
+          response = JSON.parse(xhr.responseText);
+        } catch {
+          setError('Respuesta inválida del servidor.');
+          setUploading(false);
+          return;
+        }
+
+        // ✅ FIX: API devuelve response.url directo (shape plana)
+        if (!response.url) {
+          setError('El servidor no devolvió una URL válida.');
+          setUploading(false);
+          return;
+        }
+
+        console.log('✅ Video uploaded! URL:', response.url);
+
+        // Guardar en localStorage con contentType incluido
+        const newVideo: VideoData = {
+          id: response.id ?? `vid_${Date.now()}`,
+          title,
+          description,
+          url: response.url,                          // ✅ URL real de Vercel Blob
+          contentType: response.contentType ?? 'video/mp4', // ✅ MIME type para el player
+          channel: 'You',
+          views: 0,
+          time: 'just now',
+          duration: '--:--',
+          thumbnail: '🎥',
+          createdAt: new Date().toISOString(),
+        };
+
+        try {
+          const stored = localStorage.getItem('adsotube_videos');
+          const videos: VideoData[] = stored ? JSON.parse(stored) : [];
           videos.unshift(newVideo);
           localStorage.setItem('adsotube_videos', JSON.stringify(videos));
-          
-          setSuccess('✅ Video uploaded successfully! Redirecting...');
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 1500);
-        } else {
-          const errorData = JSON.parse(xhr.responseText);
-          setError(errorData.error || 'Upload failed. Please try again.');
-          setUploading(false);
+        } catch (storageErr) {
+          console.error('localStorage error:', storageErr);
         }
-      };
 
-      xhr.onerror = () => {
-        setError('Upload failed. Network error. Please check your connection.');
+        setSuccess('✅ Video subido correctamente. Redirigiendo...');
+        setTimeout(() => router.push('/dashboard'), 1500);
+
+      } else {
+        // ✅ FIX: Siempre muestra el error real del servidor
+        let errorMessage = `Upload failed (HTTP ${xhr.status})`;
+        try {
+          const err = JSON.parse(xhr.responseText);
+          if (err.error) errorMessage = err.error;
+        } catch { /* body no es JSON */ }
+        setError(errorMessage);
         setUploading(false);
-      };
+      }
+    };
 
-      xhr.open('POST', '/api/upload');
-      xhr.send(formData);
-      
-    } catch (err) {
-      setError('Upload failed. Please try again.');
+    // ✅ FIX: Captura errores de red
+    xhr.onerror = () => {
+      setError('Error de red. Verifica tu conexión e intenta de nuevo.');
       setUploading(false);
-    }
+    };
+
+    xhr.ontimeout = () => {
+      setError('Tiempo de espera agotado. El archivo puede ser muy grande.');
+      setUploading(false);
+    };
+
+    xhr.open('POST', '/api/upload');
+    xhr.send(formData);
   };
 
   return (
@@ -141,13 +174,13 @@ export default function UploadPage() {
             ❌ {error}
           </div>
         )}
-        
+
         {success && (
           <div className="mb-6 bg-green-900/50 border-2 border-[#00FFD1] text-white p-4 rounded-xl font-mono">
-            ✅ {success}
+            {success}
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="border-4 border-dashed border-[#00FFD1] rounded-2xl p-12 text-center hover:border-[#FF006E] transition-all bg-gray-900/50">
             {!file ? (
@@ -168,9 +201,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">
-                  MP4, MOV, AVI, WEBM - Max 500MB
-                </p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Max 500MB</p>
               </div>
             ) : (
               <div className="space-y-6">
