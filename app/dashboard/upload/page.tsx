@@ -36,9 +36,9 @@ export default function UploadPage() {
         setError('Invalid file type. Please upload MP4, MOV, AVI, or WEBM');
         return;
       }
-      // ✅ LÍMITE REDUCIDO A 50MB PARA EVITAR ERROR 413
-      if (selectedFile.size > 50 * 1024 * 1024) {
-        setError('File too large. Max 50MB. Please compress your video first.');
+      // Vercel Blob soporta hasta 4.5GB, pero ponemos límite razonable
+      if (selectedFile.size > 500 * 1024 * 1024) {
+        setError('File too large. Max 500MB for now.');
         return;
       }
       setFile(selectedFile);
@@ -74,56 +74,35 @@ export default function UploadPage() {
 
     xhr.onload = () => {
       if (xhr.status === 200) {
-        let response: {
-          success: boolean;
-          url: string;
-          downloadUrl?: string;
-          contentType?: string;
-          id?: string;
-        };
-
         try {
-          response = JSON.parse(xhr.responseText);
-        } catch {
-          setError('Invalid server response');
-          setUploading(false);
-          return;
-        }
+          const response = JSON.parse(xhr.responseText);
+          console.log('✅ Video uploaded! URL:', response.url);
 
-        if (!response.url) {
-          setError('Server did not return a valid URL');
-          setUploading(false);
-          return;
-        }
+          const newVideo: VideoData = {
+            id: response.id ?? `vid_${Date.now()}`,
+            title,
+            description,
+            url: response.url,
+            contentType: response.contentType ?? 'video/mp4',
+            channel: 'You',
+            views: 0,
+            time: 'just now',
+            duration: '--:--',
+            thumbnail: '🎥',
+            createdAt: new Date().toISOString(),
+          };
 
-        console.log('✅ Video uploaded! URL:', response.url);
-
-        const newVideo: VideoData = {
-          id: response.id ?? `vid_${Date.now()}`,
-          title,
-          description,
-          url: response.url,
-          contentType: response.contentType ?? 'video/mp4',
-          channel: 'You',
-          views: 0,
-          time: 'just now',
-          duration: '--:--',
-          thumbnail: '🎥',
-          createdAt: new Date().toISOString(),
-        };
-
-        try {
           const stored = localStorage.getItem('adsotube_videos');
           const videos: VideoData[] = stored ? JSON.parse(stored) : [];
           videos.unshift(newVideo);
           localStorage.setItem('adsotube_videos', JSON.stringify(videos));
-        } catch (storageErr) {
-          console.error('localStorage error:', storageErr);
+
+          setSuccess('✅ Video uploaded! Redirecting...');
+          setTimeout(() => router.push('/dashboard'), 1500);
+        } catch (err) {
+          setError('Error processing server response');
+          setUploading(false);
         }
-
-        setSuccess('✅ Video uploaded! Redirecting...');
-        setTimeout(() => router.push('/dashboard'), 1500);
-
       } else {
         let errorMessage = `Upload failed (HTTP ${xhr.status})`;
         try {
@@ -136,12 +115,7 @@ export default function UploadPage() {
     };
 
     xhr.onerror = () => {
-      setError('Network error. Check your connection.');
-      setUploading(false);
-    };
-
-    xhr.ontimeout = () => {
-      setError('Upload timeout. File may be too large.');
+      setError('Network error. Please check your connection.');
       setUploading(false);
     };
 
@@ -198,7 +172,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Max 50MB</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Max 500MB</p>
               </div>
             ) : (
               <div className="space-y-6">

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 segundos para subidas grandes
 
 export async function POST(request: Request) {
   try {
@@ -13,13 +14,13 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const title = (formData.get('title') as string) || 'Sin título';
+    const title = formData.get('title') as string;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Sanitizar nombre: espacios y caracteres especiales rompen la URL
+    // Sanitizar nombre del archivo
     const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
     const baseName = file.name
       .replace(/\.[^/.]+$/, '')
@@ -29,12 +30,14 @@ export async function POST(request: Request) {
 
     const fileName = `videos/${Date.now()}-${baseName}.${ext}`;
 
-    // contentType explícito — sin esto Vercel Blob guarda como
-    // application/octet-stream y el browser rechaza reproducirlo
+    // Subir a Vercel Blob - ESTE MÉTODO NO TIENE LÍMITE DE 4.5MB
     const blob = await put(fileName, file, {
       access: 'public',
       contentType: file.type || 'video/mp4',
+      addRandomSuffix: true,
     });
+
+    console.log('✅ Video uploaded to Vercel Blob:', blob.url);
 
     return NextResponse.json({
       success: true,
@@ -47,7 +50,9 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Upload error:', error);
-    const message = error instanceof Error ? error.message : 'Upload failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Upload failed: ' + (error instanceof Error ? error.message : 'Unknown error') },
+      { status: 500 }
+    );
   }
 }
