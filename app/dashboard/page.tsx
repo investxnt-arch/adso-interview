@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Upload, ThumbsUp, MessageCircle, Share2, RefreshCw } from 'lucide-react';
+import { Upload, RefreshCw } from 'lucide-react';
 
 interface Video {
   id: string;
@@ -9,67 +9,7 @@ interface Video {
   url: string;
   contentType?: string;
   channel: string;
-  views: number;
   time: string;
-  duration: string;
-  thumbnail: string;
-  description?: string;
-}
-
-function VideoPlayer({ url, contentType }: { url: string; contentType?: string }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [errorCode, setErrorCode] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !url) return;
-    setErrorCode(null);
-    el.src = url;
-    el.load();
-  }, [url]);
-
-  const errorMessages: Record<number, string> = {
-    1: 'Load aborted',
-    2: 'Network error - check your connection',
-    3: 'Error decoding video',
-    4: 'Format not supported by this browser',
-  };
-
-  return (
-    <div className="relative w-full h-full">
-      {errorCode !== null && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/90 text-sm">
-          <span className="text-[#FF006E] font-mono">
-            ⚠ {errorMessages[errorCode] ?? `Error code ${errorCode}`}
-          </span>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#00FFD1] underline underline-offset-2 hover:text-white font-mono text-xs"
-          >
-            Open video directly
-          </a>
-        </div>
-      )}
-      <video
-        ref={ref}
-        controls
-        playsInline
-        preload="metadata"
-        className="w-full h-full object-contain"
-        onError={() => {
-          const code = ref.current?.error?.code ?? 0;
-          setErrorCode(code);
-          console.error(`[VideoPlayer] Error code ${code} - URL:`, url);
-        }}
-        onCanPlay={() => setErrorCode(null)}
-      >
-        <source type={contentType ?? 'video/mp4'} />
-        <source type="video/webm" />
-      </video>
-    </div>
-  );
 }
 
 export default function DashboardPage() {
@@ -81,12 +21,12 @@ export default function DashboardPage() {
     try {
       const stored = localStorage.getItem('adsotube_videos');
       if (stored) {
-        const parsed: Video[] = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
         setVideos(parsed);
         if (parsed.length > 0) setSelectedVideo(parsed[0]);
       }
     } catch (err) {
-      console.error('[Dashboard] Error loading videos:', err);
+      console.error('Error loading videos:', err);
     } finally {
       setLoading(false);
     }
@@ -96,19 +36,19 @@ export default function DashboardPage() {
     try {
       const stored = localStorage.getItem('adsotube_videos');
       if (stored) {
-        const parsed: Video[] = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
         setVideos(parsed);
         if (parsed.length > 0 && !selectedVideo) setSelectedVideo(parsed[0]);
       }
     } catch (err) {
-      console.error('[Dashboard] Error refreshing:', err);
+      console.error('Error refreshing:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center font-mono text-[#00FFD1]">
-        LOADING...
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-[#00FFD1]">LOADING...</div>
       </div>
     );
   }
@@ -120,7 +60,7 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-bold text-[#FFE500]">No videos yet</h2>
         <Link
           href="/dashboard/upload"
-          className="bg-[#FF006E] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#FF006E]/80 transition-all shadow-[0_0_20px_#FF006E]"
+          className="bg-[#FF006E] text-white px-8 py-4 rounded-xl font-bold"
         >
           UPLOAD FIRST VIDEO
         </Link>
@@ -128,7 +68,7 @@ export default function DashboardPage() {
     );
   }
 
-  const currentVideo = selectedVideo ?? videos[0];
+  const currentVideo = selectedVideo || videos[0];
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -138,76 +78,51 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-[#FFE500]">ADSOTUBE</h1>
           <button
             onClick={refreshVideos}
-            className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors"
+            className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1]"
           >
             <RefreshCw className="w-5 h-5" />
-            <span className="font-mono text-sm">Refresh</span>
+            <span>Refresh</span>
           </button>
         </div>
 
-        {/* Video Player */}
+        {/* Video Player SIMPLE - sin errores */}
         <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1]">
-          <VideoPlayer
-            url={currentVideo.url}
-            contentType={currentVideo.contentType}
-          />
+          <video
+            src={currentVideo.url}
+            controls
+            className="w-full h-full object-contain"
+            style={{ backgroundColor: 'black' }}
+          >
+            Your browser does not support video playback.
+          </video>
         </div>
 
         {/* Video Info */}
         <div className="mt-6">
           <h2 className="text-2xl font-bold text-[#FFE500]">{currentVideo.title}</h2>
-          {currentVideo.description && (
-            <p className="text-gray-400 mt-2 font-mono text-sm">{currentVideo.description}</p>
-          )}
-          <div className="flex items-center justify-between mt-3">
-            <p className="text-[#00FFD1] font-mono">{currentVideo.channel}</p>
-            <div className="flex gap-4">
-              <button className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors">
-                <ThumbsUp className="w-5 h-5" />
-                <span className="font-mono text-sm">0</span>
-              </button>
-              <button className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors">
-                <MessageCircle className="w-5 h-5" />
-                <span className="font-mono text-sm">0</span>
-              </button>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(currentVideo.url);
-                  alert('Link copied!');
-                }}
-                className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors"
-              >
-                <Share2 className="w-5 h-5" />
-                <span className="font-mono text-sm">Share</span>
-              </button>
-            </div>
-          </div>
+          <p className="text-[#00FFD1] mt-1">{currentVideo.channel}</p>
+          <p className="text-gray-500 text-sm mt-1">{currentVideo.time}</p>
         </div>
 
         {/* More Videos */}
         {videos.length > 1 && (
           <div className="mt-12">
-            <h2 className="text-xl font-bold mb-4 text-[#FF006E] font-mono">MORE VIDEOS</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#FF006E]">MORE VIDEOS</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {videos.slice(0, 8).map((video) => (
                 <div
                   key={video.id}
                   onClick={() => setSelectedVideo(video)}
-                  className={`cursor-pointer group rounded-lg overflow-hidden border transition-all ${
+                  className={`cursor-pointer p-2 rounded-lg transition-all ${
                     currentVideo.id === video.id
-                      ? 'border-[#00FFD1]'
-                      : 'border-gray-800 hover:border-[#00FFD1]'
+                      ? 'bg-[#00FFD1]/10 border border-[#00FFD1]'
+                      : 'hover:bg-gray-900'
                   }`}
                 >
-                  <div className="aspect-video bg-gray-900 flex items-center justify-center">
+                  <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
                     <span className="text-4xl">🎥</span>
                   </div>
-                  <div className="p-2">
-                    <p className="text-sm truncate group-hover:text-[#00FFD1] transition-colors font-mono">
-                      {video.title}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1 font-mono">{video.time}</p>
-                  </div>
+                  <p className="text-sm mt-2 truncate">{video.title}</p>
                 </div>
               ))}
             </div>
