@@ -70,7 +70,7 @@ export default function UploadPage() {
 
       const { uploadUrl, filePath } = await uploadUrlRes.json();
 
-      // 2. Subir el archivo directamente a Vercel Blob usando la URL temporal
+      // 2. Subir el archivo al endpoint de upload-direct
       const xhr = new XMLHttpRequest();
 
       xhr.upload.addEventListener('progress', (event) => {
@@ -82,31 +82,42 @@ export default function UploadPage() {
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          const videoUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/blob/${filePath}`;
-          
-          const newVideo: VideoData = {
-            id: `vid_${Date.now()}`,
-            title,
-            description,
-            url: videoUrl,
-            contentType: file.type || 'video/mp4',
-            channel: 'You',
-            views: 0,
-            time: 'just now',
-            duration: `${Math.round(file.size / (1024 * 1024))} MB`,
-            thumbnail: '🎥',
-            createdAt: new Date().toISOString(),
-          };
+          try {
+            const response = JSON.parse(xhr.responseText);
+            const videoUrl = response.url;
+            
+            const newVideo: VideoData = {
+              id: `vid_${Date.now()}`,
+              title,
+              description,
+              url: videoUrl,
+              contentType: file.type || 'video/mp4',
+              channel: 'You',
+              views: 0,
+              time: 'just now',
+              duration: `${Math.round(file.size / (1024 * 1024))} MB`,
+              thumbnail: '🎥',
+              createdAt: new Date().toISOString(),
+            };
 
-          const stored = localStorage.getItem('adsotube_videos');
-          const videos: VideoData[] = stored ? JSON.parse(stored) : [];
-          videos.unshift(newVideo);
-          localStorage.setItem('adsotube_videos', JSON.stringify(videos));
+            const stored = localStorage.getItem('adsotube_videos');
+            const videos: VideoData[] = stored ? JSON.parse(stored) : [];
+            videos.unshift(newVideo);
+            localStorage.setItem('adsotube_videos', JSON.stringify(videos));
 
-          setSuccess('✅ Video uploaded! Redirecting...');
-          setTimeout(() => router.push('/dashboard'), 1500);
+            setSuccess('✅ Video uploaded! Redirecting...');
+            setTimeout(() => router.push('/dashboard'), 1500);
+          } catch (err) {
+            setError('Error processing server response');
+            setUploading(false);
+          }
         } else {
-          setError(`Upload failed (HTTP ${xhr.status})`);
+          let errorMessage = `Upload failed (HTTP ${xhr.status})`;
+          try {
+            const err = JSON.parse(xhr.responseText);
+            if (err.error) errorMessage = err.error;
+          } catch { /* body is not JSON */ }
+          setError(errorMessage);
           setUploading(false);
         }
       };

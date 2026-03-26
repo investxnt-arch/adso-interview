@@ -1,6 +1,9 @@
-import { createClient } from '@vercel/blob';
+import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -11,10 +14,11 @@ export async function POST(request: Request) {
 
     const { filename, contentType } = await request.json();
     
-    const blobClient = createClient({
-      token: process.env.BLOB_READ_WRITE_TOKEN!,
-    });
+    if (!filename) {
+      return NextResponse.json({ error: 'Filename required' }, { status: 400 });
+    }
 
+    // Sanitizar nombre
     const sanitizedName = filename
       .replace(/\s+/g, '-')
       .replace(/[^a-zA-Z0-9.\-]/g, '')
@@ -22,13 +26,11 @@ export async function POST(request: Request) {
     
     const filePath = `videos/${Date.now()}-${sanitizedName}`;
     
-    // Generar URL de subida temporal
-    const uploadUrl = await blobClient.generateUploadUrl(filePath, {
-      contentType: contentType || 'video/mp4',
-    });
+    // No necesitamos generateUploadUrl, usamos put directamente desde el cliente
+    // Pero el cliente necesita la URL de subida, así que devolvemos un endpoint
 
     return NextResponse.json({
-      uploadUrl: uploadUrl.url,
+      uploadUrl: `/api/upload-direct?path=${encodeURIComponent(filePath)}&type=${encodeURIComponent(contentType || 'video/mp4')}`,
       filePath: filePath,
     });
 
