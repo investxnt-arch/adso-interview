@@ -1,8 +1,21 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
+
+interface VideoData {
+  id: number;
+  title: string;
+  description: string;
+  url: string;
+  channel: string;
+  views: number;
+  time: string;
+  duration: string;
+  thumbnail: string;
+  createdAt: string;
+}
 
 export default function UploadPage() {
   const router = useRouter();
@@ -11,41 +24,99 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      // Validar tamaño (max 100MB para pruebas)
+      if (selectedFile.size > 100 * 1024 * 1024) {
+        setError('File too large. Max 100MB for now.');
+        return;
+      }
+      setFile(selectedFile);
+      setError('');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title) return;
+    if (!file || !title) {
+      setError('Please select a file and enter a title');
+      return;
+    }
 
     setUploading(true);
-    
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 500);
+    setError('');
+    setSuccess('');
+    setProgress(0);
 
-    setTimeout(() => {
-      clearInterval(interval);
-      setProgress(100);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
-    }, 5000);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('description', description);
+
+    try {
+      // Usar fetch con seguimiento de progreso
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded * 100) / event.total);
+          setProgress(percent);
+        }
+      });
+
+      xhr.onload = async () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          
+          // Guardar video en localStorage
+          const videos: VideoData[] = JSON.parse(localStorage.getItem('adsotube_videos') || '[]');
+          const newVideo: VideoData = {
+            id: Date.now(),
+            title,
+            description,
+            url: response.url,
+            channel: sessionStorage.getItem('userName') || 'You',
+            views: 0,
+            time: 'just now',
+            duration: file ? `${Math.round(file.size / (1024 * 1024))} MB` : '--:--',
+            thumbnail: '🎥',
+            createdAt: new Date().toISOString()
+          };
+          
+          videos.unshift(newVideo);
+          localStorage.setItem('adsotube_videos', JSON.stringify(videos));
+          
+          setSuccess('Video uploaded successfully! Redirecting...');
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 1500);
+        } else {
+          const errorData = JSON.parse(xhr.responseText);
+          setError(errorData.error || 'Upload failed. Please try again.');
+        }
+        setUploading(false);
+      };
+
+      xhr.onerror = () => {
+        setError('Upload failed. Network error. Please check your connection.');
+        setUploading(false);
+      };
+
+      xhr.open('POST', '/api/upload');
+      xhr.send(formData);
+      
+    } catch (err) {
+      setError('Upload failed. Please try again.');
+      setUploading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
       <header className="border-b border-gray-800 p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors">
@@ -60,10 +131,20 @@ export default function UploadPage() {
         </div>
       </header>
 
-      {/* Upload form */}
       <div className="max-w-3xl mx-auto p-8">
+        {error && (
+          <div className="mb-6 bg-red-900/50 border-2 border-[#FF006E] text-white p-4 rounded-xl font-mono">
+            ❌ {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="mb-6 bg-green-900/50 border-2 border-[#00FFD1] text-white p-4 rounded-xl font-mono">
+            ✅ {success}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* File area */}
           <div className="border-4 border-dashed border-[#00FFD1] rounded-2xl p-12 text-center hover:border-[#FF006E] transition-all bg-gray-900/50">
             {!file ? (
               <div className="space-y-6">
@@ -78,12 +159,14 @@ export default function UploadPage() {
                   <input
                     id="file-upload"
                     type="file"
-                    accept="video/*"
+                    accept="video/mp4,video/quicktime,video/x-msvideo,video/webm"
                     onChange={handleFileChange}
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI - Max 1GB</p>
+                <p className="text-gray-500 font-mono">
+                  MP4, MOV, AVI, WEBM - Max 100MB (for testing)
+                </p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -95,6 +178,7 @@ export default function UploadPage() {
                       <p className="text-gray-500 font-mono">
                         {(file.size / (1024 * 1024)).toFixed(2)} MB
                       </p>
+                      <p className="text-xs text-gray-600 mt-1">{file.type}</p>
                     </div>
                   </div>
                   <button
@@ -109,10 +193,9 @@ export default function UploadPage() {
             )}
           </div>
 
-          {/* Title */}
           <div className="space-y-2">
             <label className="block text-[#00FFD1] font-bold font-mono tracking-wider">
-              VIDEO TITLE
+              VIDEO TITLE *
             </label>
             <input
               type="text"
@@ -124,7 +207,6 @@ export default function UploadPage() {
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
             <label className="block text-[#00FFD1] font-bold font-mono tracking-wider">
               DESCRIPTION
@@ -138,7 +220,6 @@ export default function UploadPage() {
             />
           </div>
 
-          {/* Progress bar */}
           {uploading && (
             <div className="space-y-3">
               <div className="flex justify-between font-mono">
@@ -154,7 +235,6 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* Buttons */}
           <div className="flex gap-6 pt-4">
             <button
               type="submit"
