@@ -36,8 +36,9 @@ export default function UploadPage() {
         setError('Invalid file type. Please upload MP4, MOV, AVI, or WEBM');
         return;
       }
-      if (selectedFile.size > 500 * 1024 * 1024) {
-        setError('File too large. Max 500MB.');
+      // ✅ LÍMITE REDUCIDO A 50MB PARA EVITAR ERROR 413
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        setError('File too large. Max 50MB. Please compress your video first.');
         return;
       }
       setFile(selectedFile);
@@ -84,27 +85,25 @@ export default function UploadPage() {
         try {
           response = JSON.parse(xhr.responseText);
         } catch {
-          setError('Respuesta inválida del servidor.');
+          setError('Invalid server response');
           setUploading(false);
           return;
         }
 
-        // ✅ FIX: API devuelve response.url directo (shape plana)
         if (!response.url) {
-          setError('El servidor no devolvió una URL válida.');
+          setError('Server did not return a valid URL');
           setUploading(false);
           return;
         }
 
         console.log('✅ Video uploaded! URL:', response.url);
 
-        // Guardar en localStorage con contentType incluido
         const newVideo: VideoData = {
           id: response.id ?? `vid_${Date.now()}`,
           title,
           description,
-          url: response.url,                          // ✅ URL real de Vercel Blob
-          contentType: response.contentType ?? 'video/mp4', // ✅ MIME type para el player
+          url: response.url,
+          contentType: response.contentType ?? 'video/mp4',
           channel: 'You',
           views: 0,
           time: 'just now',
@@ -122,29 +121,27 @@ export default function UploadPage() {
           console.error('localStorage error:', storageErr);
         }
 
-        setSuccess('✅ Video subido correctamente. Redirigiendo...');
+        setSuccess('✅ Video uploaded! Redirecting...');
         setTimeout(() => router.push('/dashboard'), 1500);
 
       } else {
-        // ✅ FIX: Siempre muestra el error real del servidor
         let errorMessage = `Upload failed (HTTP ${xhr.status})`;
         try {
           const err = JSON.parse(xhr.responseText);
           if (err.error) errorMessage = err.error;
-        } catch { /* body no es JSON */ }
+        } catch { /* body is not JSON */ }
         setError(errorMessage);
         setUploading(false);
       }
     };
 
-    // ✅ FIX: Captura errores de red
     xhr.onerror = () => {
-      setError('Error de red. Verifica tu conexión e intenta de nuevo.');
+      setError('Network error. Check your connection.');
       setUploading(false);
     };
 
     xhr.ontimeout = () => {
-      setError('Tiempo de espera agotado. El archivo puede ser muy grande.');
+      setError('Upload timeout. File may be too large.');
       setUploading(false);
     };
 
@@ -201,7 +198,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Max 500MB</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Max 50MB</p>
               </div>
             ) : (
               <div className="space-y-6">
