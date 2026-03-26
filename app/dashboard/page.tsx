@@ -10,24 +10,35 @@ interface Video {
   size: number;
   uploadedAt: string;
   thumbnail: string;
+  fileType: string;
 }
 
 export default function DashboardPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
-  const [videoError, setVideoError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadVideos = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const response = await fetch('/api/videos');
       const data = await response.json();
-      setVideos(data.videos);
-      if (data.videos.length > 0 && !selectedVideo) {
+      
+      if (data.error) {
+        setError(data.error);
+      }
+      
+      setVideos(data.videos || []);
+      
+      if (data.videos && data.videos.length > 0 && !selectedVideo) {
         setSelectedVideo(data.videos[0]);
       }
-    } catch (error) {
-      console.error('Error loading videos:', error);
+    } catch (err) {
+      setError('Failed to load videos');
+      console.error('Error loading videos:', err);
     } finally {
       setLoading(false);
     }
@@ -37,9 +48,10 @@ export default function DashboardPage() {
     loadVideos();
   }, []);
 
-  const handleVideoError = () => {
-    setVideoError('Video failed to load.');
-    setTimeout(() => setVideoError(null), 5000);
+  const handleVideoError = (videoUrl: string) => {
+    console.error(`Video failed to load: ${videoUrl}`);
+    setError('Video failed to load. The file might be corrupted or the URL is invalid.');
+    setTimeout(() => setError(null), 5000);
   };
 
   const shareVideo = (url: string) => {
@@ -72,9 +84,9 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {videoError && (
+        {error && (
           <div className="mb-4 bg-red-900/50 border-2 border-[#FF006E] text-white p-4 rounded-xl font-mono text-sm">
-            ⚠️ {videoError}
+            ⚠️ {error}
           </div>
         )}
 
@@ -99,10 +111,10 @@ export default function DashboardPage() {
                 src={currentVideo.url}
                 controls
                 className="w-full h-full object-contain"
-                onError={handleVideoError}
+                onError={() => handleVideoError(currentVideo.url)}
                 controlsList="nodownload"
               >
-                Your browser does not support the video tag.
+                <p>Your browser does not support the video tag.</p>
               </video>
             </div>
 
@@ -112,7 +124,8 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mt-2 flex-wrap gap-4">
                 <div>
                   <p className="text-gray-500 text-sm">
-                    {(currentVideo.size / (1024 * 1024)).toFixed(2)} MB • Uploaded {new Date(currentVideo.uploadedAt).toLocaleDateString()}
+                    {currentVideo.fileType} • {(currentVideo.size / (1024 * 1024)).toFixed(2)} MB • 
+                    Uploaded {new Date(currentVideo.uploadedAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex gap-4">
@@ -140,12 +153,12 @@ export default function DashboardPage() {
               <div className="mt-12">
                 <h2 className="text-xl font-bold mb-4 text-[#FF006E]">MORE VIDEOS</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {videos.slice(0, 8).map((video) => (
+                  {videos.map((video) => (
                     <div
                       key={video.id}
                       onClick={() => {
                         setSelectedVideo(video);
-                        setVideoError(null);
+                        setError(null);
                       }}
                       className={`cursor-pointer group p-2 rounded-lg transition-all ${
                         selectedVideo?.id === video.id ? 'bg-[#00FFD1]/10 border border-[#00FFD1]' : 'hover:bg-gray-900'
@@ -156,7 +169,7 @@ export default function DashboardPage() {
                       </div>
                       <p className="text-sm mt-2 truncate group-hover:text-[#00FFD1]">{video.title}</p>
                       <p className="text-xs text-gray-500">
-                        {(video.size / (1024 * 1024)).toFixed(0)} MB
+                        {video.fileType} • {(video.size / (1024 * 1024)).toFixed(0)} MB
                       </p>
                     </div>
                   ))}

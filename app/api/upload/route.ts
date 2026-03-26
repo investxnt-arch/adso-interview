@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validar tipo de archivo
+    // Validaciones
     const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
     if (!validTypes.includes(file.type)) {
       return NextResponse.json({ 
@@ -26,16 +26,20 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Generar nombre único para el archivo
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    
+    // Generar nombre único y seguro
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${timestamp}-${safeName}`;
+
+    console.log(`Uploading video: ${fileName} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`);
+
     // Subir a Vercel Blob
     const blob = await put(`videos/${fileName}`, file, {
       access: 'public',
       addRandomSuffix: false,
     });
 
-    console.log('Video uploaded successfully:', blob.url);
+    console.log(`Video uploaded successfully: ${blob.url}`);
 
     return NextResponse.json({
       success: true,
@@ -43,13 +47,14 @@ export async function POST(request: Request) {
       title,
       description,
       fileType: file.type,
-      size: file.size
+      size: file.size,
+      fileName: fileName
     });
     
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Upload failed: ' + (error as Error).message },
+      { error: `Upload failed: ${(error as Error).message}` },
       { status: 500 }
     );
   }
