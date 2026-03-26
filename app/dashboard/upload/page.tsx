@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
@@ -27,7 +27,6 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -54,32 +53,42 @@ export default function UploadPage() {
     setSuccess('');
     setProgress(0);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('description', description);
+    try {
+      // 1. Obtener URL de subida del servidor
+      const uploadUrlRes = await fetch('/api/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+        }),
+      });
 
-    const xhr = new XMLHttpRequest();
-    abortControllerRef.current = new AbortController();
-
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded * 100) / event.total);
-        setProgress(percent);
+      if (!uploadUrlRes.ok) {
+        throw new Error('Failed to get upload URL');
       }
-    });
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          console.log('✅ Video uploaded! URL:', response.url);
+      const { uploadUrl, filePath } = await uploadUrlRes.json();
 
+      // 2. Subir el archivo directamente a Vercel Blob usando la URL temporal
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded * 100) / event.total);
+          setProgress(percent);
+        }
+      });
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const videoUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/blob/${filePath}`;
+          
           const newVideo: VideoData = {
             id: `vid_${Date.now()}`,
             title,
             description,
-            url: response.url,
+            url: videoUrl,
             contentType: file.type || 'video/mp4',
             channel: 'You',
             views: 0,
@@ -96,35 +105,24 @@ export default function UploadPage() {
 
           setSuccess('✅ Video uploaded! Redirecting...');
           setTimeout(() => router.push('/dashboard'), 1500);
-        } catch (err) {
-          setError('Error processing server response');
+        } else {
+          setError(`Upload failed (HTTP ${xhr.status})`);
           setUploading(false);
         }
-      } else {
-        let errorMessage = `Upload failed (HTTP ${xhr.status})`;
-        try {
-          const err = JSON.parse(xhr.responseText);
-          if (err.error) errorMessage = err.error;
-        } catch { /* body is not JSON */ }
-        setError(errorMessage);
+      };
+
+      xhr.onerror = () => {
+        setError('Network error. Please check your connection.');
         setUploading(false);
-      }
-    };
+      };
 
-    xhr.onerror = () => {
-      setError('Network error. Please check your connection.');
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
+
+    } catch (err) {
+      setError('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setUploading(false);
-    };
-
-    xhr.open('POST', '/api/upload');
-    xhr.send(formData);
-  };
-
-  const cancelUpload = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setUploading(false);
-      setError('Upload cancelled');
     }
   };
 
@@ -177,7 +175,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Supports large files</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Any size</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -242,13 +240,6 @@ export default function UploadPage() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={cancelUpload}
-                className="text-sm text-gray-500 hover:text-[#FF006E] transition-colors"
-              >
-                Cancel upload
-              </button>
             </div>
           )}
 
