@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
@@ -27,6 +27,7 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -59,6 +60,7 @@ export default function UploadPage() {
     formData.append('description', description);
 
     const xhr = new XMLHttpRequest();
+    abortControllerRef.current = new AbortController();
 
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) {
@@ -118,6 +120,14 @@ export default function UploadPage() {
     xhr.send(formData);
   };
 
+  const cancelUpload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setUploading(false);
+      setError('Upload cancelled');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <header className="border-b border-gray-800 p-4">
@@ -167,7 +177,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Supports large files</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -232,6 +242,13 @@ export default function UploadPage() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
+              <button
+                type="button"
+                onClick={cancelUpload}
+                className="text-sm text-gray-500 hover:text-[#FF006E] transition-colors"
+              >
+                Cancel upload
+              </button>
             </div>
           )}
 

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 segundos para subidas grandes
 
 export async function POST(request: Request) {
   try {
@@ -27,10 +28,11 @@ export async function POST(request: Request) {
     
     const fileName = `videos/${Date.now()}-${sanitizedName}`;
 
-    // El token se usa en el servidor, no en el cliente
+    // Subir con multipart support
     const blob = await put(fileName, file, {
       access: 'public',
       contentType: file.type || 'video/mp4',
+      multipart: true, // ✅ HABILITAR SUBIDA EN PARTES
     });
 
     console.log('✅ Video uploaded:', blob.url);
