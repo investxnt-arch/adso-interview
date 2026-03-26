@@ -30,9 +30,15 @@ export default function UploadPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      // Validar tamaño (max 100MB para pruebas)
-      if (selectedFile.size > 100 * 1024 * 1024) {
-        setError('File too large. Max 100MB for now.');
+      // Validar tipo de archivo
+      const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+      if (!validTypes.includes(selectedFile.type)) {
+        setError('Invalid file type. Please upload MP4, MOV, AVI, or WEBM');
+        return;
+      }
+      // Límite de 500MB (más que suficiente para videos cortos)
+      if (selectedFile.size > 500 * 1024 * 1024) {
+        setError('File too large. Max 500MB for now.');
         return;
       }
       setFile(selectedFile);
@@ -58,7 +64,6 @@ export default function UploadPage() {
     formData.append('description', description);
 
     try {
-      // Usar fetch con seguimiento de progreso
       const xhr = new XMLHttpRequest();
       
       xhr.upload.addEventListener('progress', (event) => {
@@ -72,7 +77,6 @@ export default function UploadPage() {
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
           
-          // Guardar video en localStorage
           const videos: VideoData[] = JSON.parse(localStorage.getItem('adsotube_videos') || '[]');
           const newVideo: VideoData = {
             id: Date.now(),
@@ -165,7 +169,7 @@ export default function UploadPage() {
                   />
                 </div>
                 <p className="text-gray-500 font-mono">
-                  MP4, MOV, AVI, WEBM - Max 100MB (for testing)
+                  MP4, MOV, AVI, WEBM - Max 500MB
                 </p>
               </div>
             ) : (
