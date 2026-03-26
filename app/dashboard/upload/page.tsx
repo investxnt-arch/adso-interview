@@ -4,6 +4,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload, Film, X, ChevronLeft } from 'lucide-react';
 
+interface VideoData {
+  id: number;
+  title: string;
+  description: string;
+  url: string;
+  channel: string;
+  views: number;
+  time: string;
+  duration: string;
+  thumbnail: string;
+  createdAt: string;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -61,19 +74,39 @@ export default function UploadPage() {
       xhr.onload = async () => {
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
-          setSuccess('✅ Video uploaded successfully! Redirecting to dashboard...');
+          console.log('✅ Video uploaded! URL:', response.url);
+          
+          // Guardar en localStorage con la URL correcta
+          const videos: VideoData[] = JSON.parse(localStorage.getItem('adsotube_videos') || '[]');
+          const newVideo: VideoData = {
+            id: Date.now(),
+            title: title,
+            description: description,
+            url: response.url,
+            channel: 'You',
+            views: 0,
+            time: 'just now',
+            duration: file ? `${Math.round(file.size / (1024 * 1024))} MB` : '--:--',
+            thumbnail: '🎥',
+            createdAt: new Date().toISOString()
+          };
+          
+          videos.unshift(newVideo);
+          localStorage.setItem('adsotube_videos', JSON.stringify(videos));
+          
+          setSuccess('✅ Video uploaded successfully! Redirecting...');
           setTimeout(() => {
             router.push('/dashboard');
           }, 1500);
         } else {
           const errorData = JSON.parse(xhr.responseText);
           setError(errorData.error || 'Upload failed. Please try again.');
+          setUploading(false);
         }
-        setUploading(false);
       };
 
       xhr.onerror = () => {
-        setError('Upload failed. Network error.');
+        setError('Upload failed. Network error. Please check your connection.');
         setUploading(false);
       };
 
@@ -149,6 +182,7 @@ export default function UploadPage() {
                       <p className="text-gray-500 font-mono">
                         {(file.size / (1024 * 1024)).toFixed(2)} MB
                       </p>
+                      <p className="text-xs text-gray-600 mt-1">{file.type}</p>
                     </div>
                   </div>
                   <button
