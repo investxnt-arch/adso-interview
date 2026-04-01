@@ -54,23 +54,28 @@ export default function UploadPage() {
     setProgress(0);
 
     try {
-      // 1. Obtener URL de subida del servidor
-      const uploadUrlRes = await fetch('/api/upload-url', {
+      // 1. Obtener firma de Cloudinary
+      const signRes = await fetch('/api/cloudinary-sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-        }),
+        body: JSON.stringify({ folder: 'adsotube' }),
       });
 
-      if (!uploadUrlRes.ok) {
-        throw new Error('Failed to get upload URL');
+      if (!signRes.ok) {
+        throw new Error('Failed to get upload signature');
       }
 
-      const { uploadUrl, filePath } = await uploadUrlRes.json();
+      const { signature, timestamp, cloudName, apiKey, folder } = await signRes.json();
 
-      // 2. Subir el archivo al endpoint de upload-direct
+      // 2. Subir directamente a Cloudinary desde el cliente
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('signature', signature);
+      formData.append('folder', folder);
+      formData.append('resource_type', 'video');
+
       const xhr = new XMLHttpRequest();
 
       xhr.upload.addEventListener('progress', (event) => {
@@ -84,10 +89,10 @@ export default function UploadPage() {
         if (xhr.status === 200) {
           try {
             const response = JSON.parse(xhr.responseText);
-            const videoUrl = response.url;
+            const videoUrl = response.secure_url;
             
             const newVideo: VideoData = {
-              id: `vid_${Date.now()}`,
+              id: response.public_id || `vid_${Date.now()}`,
               title,
               description,
               url: videoUrl,
@@ -115,7 +120,7 @@ export default function UploadPage() {
           let errorMessage = `Upload failed (HTTP ${xhr.status})`;
           try {
             const err = JSON.parse(xhr.responseText);
-            if (err.error) errorMessage = err.error;
+            if (err.error) errorMessage = err.error.message || err.error;
           } catch { /* body is not JSON */ }
           setError(errorMessage);
           setUploading(false);
@@ -127,9 +132,8 @@ export default function UploadPage() {
         setUploading(false);
       };
 
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.send(file);
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
+      xhr.send(formData);
 
     } catch (err) {
       setError('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -186,7 +190,7 @@ export default function UploadPage() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — Any size</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — No size limit (Cloudinary)</p>
               </div>
             ) : (
               <div className="space-y-6">
