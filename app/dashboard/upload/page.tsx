@@ -31,9 +31,13 @@ export default function UploadPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+      const validTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
       if (!validTypes.includes(selectedFile.type)) {
-        setError('Invalid file type. Please upload MP4, MOV, AVI, or WEBM');
+        setError('Invalid file type. Please upload MP4, MOV, or WEBM');
+        return;
+      }
+      if (selectedFile.size > 100 * 1024 * 1024) {
+        setError('File too large. Max 100MB.');
         return;
       }
       setFile(selectedFile);
@@ -54,30 +58,34 @@ export default function UploadPage() {
     setProgress(0);
 
     try {
-      // 1. Obtener firma de Cloudinary
+      // 1. Obtener firma del servidor
+      const timestamp = Math.floor(Date.now() / 1000);
       const signRes = await fetch('/api/cloudinary-sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder: 'adsotube' }),
+        body: JSON.stringify({
+          folder: 'adsotube',
+          public_id: `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`,
+          timestamp,
+        }),
       });
-
+      
       if (!signRes.ok) {
-        throw new Error('Failed to get upload signature');
+        throw new Error('Failed to get signature');
       }
+      
+      const { signature, api_key, cloud_name } = await signRes.json();
 
-      const { signature, timestamp, cloudName, apiKey, folder } = await signRes.json();
-
-      // 2. Subir directamente a Cloudinary desde el cliente
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', apiKey);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('signature', signature);
-      formData.append('folder', folder);
-      formData.append('resource_type', 'video');
+      // 2. Subir directamente a Cloudinary con firma
+      const formDataCloudinary = new FormData();
+      formDataCloudinary.append('file', file);
+      formDataCloudinary.append('api_key', api_key);
+      formDataCloudinary.append('timestamp', timestamp.toString());
+      formDataCloudinary.append('signature', signature);
+      formDataCloudinary.append('folder', 'adsotube');
+      formDataCloudinary.append('resource_type', 'video');
 
       const xhr = new XMLHttpRequest();
-
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           const percent = Math.round((event.loaded * 100) / event.total);
@@ -89,53 +97,62 @@ export default function UploadPage() {
         if (xhr.status === 200) {
           try {
             const response = JSON.parse(xhr.responseText);
-            const videoUrl = response.secure_url;
+            console.log('✅ Video uploaded:', response.secure_url);
             
+            // Guardar en localStorage
             const newVideo: VideoData = {
-              id: response.public_id || `vid_${Date.now()}`,
+              id: `vid_${Date.now()}`,
               title,
               description,
-              url: videoUrl,
-              contentType: file.type || 'video/mp4',
+              url: response.secure_url,
+              contentType: 'video/mp4',
               channel: 'You',
               views: 0,
               time: 'just now',
-              duration: `${Math.round(file.size / (1024 * 1024))} MB`,
+              duration: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
               thumbnail: '🎥',
               createdAt: new Date().toISOString(),
             };
-
+            
             const stored = localStorage.getItem('adsotube_videos');
             const videos: VideoData[] = stored ? JSON.parse(stored) : [];
             videos.unshift(newVideo);
             localStorage.setItem('adsotube_videos', JSON.stringify(videos));
-
+            
             setSuccess('✅ Video uploaded! Redirecting...');
             setTimeout(() => router.push('/dashboard'), 1500);
           } catch (err) {
-            setError('Error processing server response');
+            setError('Error processing response');
             setUploading(false);
           }
         } else {
-          let errorMessage = `Upload failed (HTTP ${xhr.status})`;
+          let errorMsg = 'Upload failed';
           try {
             const err = JSON.parse(xhr.responseText);
-            if (err.error) errorMessage = err.error.message || err.error;
-          } catch { /* body is not JSON */ }
-          setError(errorMessage);
+            errorMsg = err.error?.message || err.message || 'Upload failed';
+          } catch {
+            errorMsg = `Upload failed (HTTP ${xhr.status})`;
+          }
+          setError(errorMsg);
           setUploading(false);
         }
       };
-
+      
       xhr.onerror = () => {
         setError('Network error. Please check your connection.');
         setUploading(false);
       };
-
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
-      xhr.send(formData);
-
+      
+      xhr.ontimeout = () => {
+        setError('Upload timeout. File may be too large.');
+        setUploading(false);
+      };
+      
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`);
+      xhr.send(formDataCloudinary);
+      
     } catch (err) {
+      console.error('Upload error:', err);
       setError('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setUploading(false);
     }
@@ -185,12 +202,12 @@ export default function UploadPage() {
                   <input
                     id="file-upload"
                     type="file"
-                    accept="video/mp4,video/quicktime,video/x-msvideo,video/webm"
+                    accept="video/mp4,video/quicktime,video/webm"
                     onChange={handleFileChange}
                     className="hidden"
                   />
                 </div>
-                <p className="text-gray-500 font-mono">MP4, MOV, AVI, WEBM — No size limit (Cloudinary)</p>
+                <p className="text-gray-500 font-mono">MP4, MOV, WEBM — Max 100MB</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -202,6 +219,7 @@ export default function UploadPage() {
                       <p className="text-gray-500 font-mono">
                         {(file.size / (1024 * 1024)).toFixed(2)} MB
                       </p>
+                      <p className="text-xs text-gray-600 mt-1">{file.type}</p>
                     </div>
                   </div>
                   <button

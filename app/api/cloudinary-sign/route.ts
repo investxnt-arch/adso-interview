@@ -15,27 +15,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { folder = 'adsotube' } = await request.json();
-    
-    const timestamp = Math.round(Date.now() / 1000);
+    const { folder, public_id, timestamp } = await request.json();
+
+    // Generar firma para subida presignada
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp, folder },
+      { timestamp, folder, public_id },
       process.env.CLOUDINARY_API_SECRET!
     );
 
     return NextResponse.json({
       signature,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       timestamp,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-      folder,
     });
-
   } catch (error) {
-    console.error('Error generating signature:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate signature' },
-      { status: 500 }
-    );
+    console.error('Signature error:', error);
+    return NextResponse.json({ error: 'Error generating signature' }, { status: 500 });
   }
 }
