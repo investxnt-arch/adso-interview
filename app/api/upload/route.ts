@@ -1,9 +1,15 @@
-import { put } from '@vercel/blob';
+import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
+// Configuración básica de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 segundos para subidas grandes
 
 export async function POST(request: Request) {
   try {
@@ -20,26 +26,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Sanitizar nombre del archivo
-    const sanitizedName = file.name
-      .replace(/\s+/g, '-')
-      .replace(/[^a-zA-Z0-9.\-]/g, '')
-      .toLowerCase();
-    
-    const fileName = `videos/${Date.now()}-${sanitizedName}`;
+    // Convertir archivo a Buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    // Subir con multipart support
-    const blob = await put(fileName, file, {
-      access: 'public',
-      contentType: file.type || 'video/mp4',
-      multipart: true, // ✅ HABILITAR SUBIDA EN PARTES
+    // Subir a Cloudinary de la forma más simple posible
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'auto', // Detecta automáticamente video o imagen
+          folder: 'adsotube',
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary error:', error);
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      ).end(buffer);
     });
 
-    console.log('✅ Video uploaded:', blob.url);
+    const videoUrl = (result as any).secure_url;
+    console.log('✅ Video uploaded:', videoUrl);
 
     return NextResponse.json({
       success: true,
-      url: blob.url,
+      url: videoUrl,
       title,
     });
 
