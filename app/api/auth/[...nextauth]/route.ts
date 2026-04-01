@@ -1,9 +1,5 @@
-import { NextResponse } from 'next/server'
+import { handlers } from "@/lib/auth"
 
-export async function GET() {
-  return NextResponse.json({ message: 'Auth route is working!' })
-}
-
-export async function POST() {
-  return NextResponse.json({ message: 'Auth route is working!' })
-}
+// Exportar los handlers de NextAuth
+export const GET = handlers.GET
+export const POST = handlers.POST
