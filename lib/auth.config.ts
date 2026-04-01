@@ -6,7 +6,6 @@ import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from './prisma';
 
-// Extender los tipos de NextAuth (esto SÍ es correcto)
 declare module 'next-auth' {
   interface User {
     role?: string;
@@ -21,8 +20,6 @@ declare module 'next-auth' {
     }
   }
 }
-
-// ❌ ELIMINADA la declaración incorrecta del módulo '@auth/core/jwt'
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -106,12 +103,10 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user;
       const pathname = request.nextUrl.pathname;
       
-      // Proteger rutas del dashboard y explore
       if (pathname.startsWith('/dashboard') || pathname.startsWith('/explore')) {
         return isLoggedIn;
       }
       
-      // Permitir todas las demás rutas (login, register, home, etc.)
       return true;
     },
   },
@@ -123,7 +118,7 @@ export const authConfig: NextAuthConfig = {
   
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 días
+    maxAge: 30 * 24 * 60 * 60,
   },
   
   trustHost: true,
