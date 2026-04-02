@@ -1,8 +1,8 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
-// Configuración de Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -30,17 +30,16 @@ export async function POST(request: Request) {
 
     console.log('📤 Uploading file:', file.name, file.size, file.type);
 
-    // Convertir File a Buffer
+    // Subir a Cloudinary
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Subir a Cloudinary con upload_preset
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'auto',
           folder: 'adsotube',
-          upload_preset: 'adsotube_upload',  // ← PRESET CREADO EN CLOUDINARY
+          upload_preset: 'adsotube_upload',
           public_id: `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`,
         },
         (error, result) => {
@@ -58,12 +57,33 @@ export async function POST(request: Request) {
 
     const videoUrl = (result as any).secure_url;
 
+    // ✅ Guardar en Supabase
+    const { data, error: supabaseError } = await supabase
+      .from('videos')
+      .insert({
+        title,
+        description,
+        url: videoUrl,
+        user_id: session.user.id,
+        user_name: session.user.name || 'Anonymous',
+        views: 0,
+        likes: 0,
+      })
+      .select();
+
+    if (supabaseError) {
+      console.error('❌ Supabase error:', supabaseError);
+      return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    }
+
+    console.log('✅ Saved to Supabase:', data);
+
     return NextResponse.json({
       success: true,
       url: videoUrl,
       title,
       description,
-      id: `vid_${Date.now()}`,
+      id: data?.[0]?.id,
     });
 
   } catch (error) {
