@@ -9,6 +9,7 @@ interface VideoData {
   title: string;
   description: string;
   url: string;
+  contentType: string;
   channel: string;
   views: number;
   time: string;
@@ -33,6 +34,10 @@ export default function UploadPage() {
       const validTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
       if (!validTypes.includes(selectedFile.type)) {
         setError('Invalid file type. Please upload MP4, MOV, or WEBM');
+        return;
+      }
+      if (selectedFile.size > 100 * 1024 * 1024) {
+        setError('File too large. Max 100MB.');
         return;
       }
       setFile(selectedFile);
@@ -60,7 +65,8 @@ export default function UploadPage() {
     const xhr = new XMLHttpRequest();
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) {
-        setProgress(Math.round((event.loaded * 100) / event.total));
+        const percent = Math.round((event.loaded * 100) / event.total);
+        setProgress(percent);
       }
     });
 
@@ -68,13 +74,15 @@ export default function UploadPage() {
       if (xhr.status === 200) {
         try {
           const response = JSON.parse(xhr.responseText);
-          console.log('✅ Video uploaded:', response.url);
+          console.log('✅ Video uploaded! URL:', response.url);
           
+          // Guardar en localStorage
           const newVideo: VideoData = {
-            id: response.id ?? `vid_${Date.now()}`,
-            title,
-            description,
+            id: `vid_${Date.now()}`,
+            title: title,
+            description: description,
             url: response.url,
+            contentType: 'video/mp4',
             channel: 'You',
             views: 0,
             time: 'just now',
@@ -109,6 +117,11 @@ export default function UploadPage() {
     
     xhr.onerror = () => {
       setError('Network error. Please check your connection.');
+      setUploading(false);
+    };
+    
+    xhr.ontimeout = () => {
+      setError('Upload timeout. File may be too large.');
       setUploading(false);
     };
     
