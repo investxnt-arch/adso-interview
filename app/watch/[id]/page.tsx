@@ -2,7 +2,6 @@ import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
-// Configurar cliente de Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -16,7 +15,6 @@ interface VideoPageProps {
 export default async function WatchPage({ params }: VideoPageProps) {
   const { id } = params;
 
-  // Obtener el video de la base de datos
   const { data: video, error } = await supabase
     .from('videos')
     .select('*')
@@ -27,17 +25,17 @@ export default async function WatchPage({ params }: VideoPageProps) {
     notFound();
   }
 
+  const shareUrl = `https://podcast-saas-six.vercel.app/watch/${video.id}`;
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-5xl mx-auto p-6">
-        {/* Header */}
         <div className="mb-6">
           <Link href="/" className="text-[#00FFD1] hover:text-[#FFE500] transition-colors">
             ← BACK TO HOME
           </Link>
         </div>
 
-        {/* Video Player */}
         <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1]">
           <video
             src={video.url}
@@ -49,7 +47,6 @@ export default async function WatchPage({ params }: VideoPageProps) {
           </video>
         </div>
 
-        {/* Video Info */}
         <div className="mt-6">
           <h1 className="text-3xl font-bold text-[#FFE500]">{video.title}</h1>
           <div className="flex items-center gap-4 mt-2">
@@ -65,19 +62,18 @@ export default async function WatchPage({ params }: VideoPageProps) {
           )}
         </div>
 
-        {/* Share Section */}
         <div className="mt-8 p-4 bg-gray-900/50 rounded-xl border border-gray-800">
           <h3 className="text-[#00FFD1] font-bold mb-2">Share this video</h3>
           <div className="flex gap-2">
             <input
               type="text"
-              value={`https://podcast-saas-six.vercel.app/watch/${video.id}`}
+              value={shareUrl}
               readOnly
               className="flex-1 bg-black border border-gray-800 rounded-lg px-4 py-2 text-white text-sm"
             />
             <button
-              onClick={async () => {
-                await navigator.clipboard.writeText(`https://podcast-saas-six.vercel.app/watch/${video.id}`);
+              onClick={() => {
+                navigator.clipboard.writeText(shareUrl);
                 alert('Link copied to clipboard!');
               }}
               className="bg-[#FF006E] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#FF006E]/80 transition-colors"
