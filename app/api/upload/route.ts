@@ -2,11 +2,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
-// Configuración directa (para prueba)
+// Configuración de Cloudinary
 cloudinary.config({
-  cloud_name: 'dfkfqxhmv',
-  api_key: '636456423598492',
-  api_secret: 'J2jdM4mYnxhkhNlpaVBvaxoAG9M',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 export const runtime = 'nodejs';
@@ -30,14 +30,17 @@ export async function POST(request: Request) {
 
     console.log('📤 Uploading file:', file.name, file.size, file.type);
 
+    // Convertir File a Buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Subir a Cloudinary con upload_preset
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'auto',
           folder: 'adsotube',
+          upload_preset: 'adsotube_upload',  // ← PRESET CREADO EN CLOUDINARY
           public_id: `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`,
         },
         (error, result) => {
