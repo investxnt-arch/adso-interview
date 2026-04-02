@@ -2,10 +2,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
+// Configuración directa (para prueba)
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: 'dfkfqxhmv',
+  api_key: '636456423598492',
+  api_secret: 'J2jdM4mYnxhkhNlpaVBvaxoAG9M',
 });
 
 export const runtime = 'nodejs';
@@ -27,18 +28,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Log para debug
     console.log('📤 Uploading file:', file.name, file.size, file.type);
-    console.log('📤 Cloudinary config:', {
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY ? 'present' : 'missing',
-      api_secret: process.env.CLOUDINARY_API_SECRET ? 'present' : 'missing',
-    });
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Subir a Cloudinary
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
