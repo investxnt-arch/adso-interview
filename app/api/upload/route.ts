@@ -2,7 +2,6 @@ import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
-// Configuración básica de Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -10,6 +9,7 @@ cloudinary.config({
 });
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -21,40 +21,41 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Convertir archivo a Buffer
+    // Convertir File a Buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Subir a Cloudinary de la forma más simple posible
+    // Subir a Cloudinary desde el servidor (evita CORS)
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
+      const uploadStream = cloudinary.uploader.upload_stream(
         {
-          resource_type: 'auto', // Detecta automáticamente video o imagen
+          resource_type: 'video',
           folder: 'adsotube',
+          public_id: `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`,
         },
         (error, result) => {
-          if (error) {
-            console.error('Cloudinary error:', error);
-            reject(error);
-          } else {
-            resolve(result);
-          }
+          if (error) reject(error);
+          else resolve(result);
         }
-      ).end(buffer);
+      );
+      uploadStream.end(buffer);
     });
 
     const videoUrl = (result as any).secure_url;
-    console.log('✅ Video uploaded:', videoUrl);
+    console.log('✅ Video uploaded to Cloudinary:', videoUrl);
 
     return NextResponse.json({
       success: true,
       url: videoUrl,
       title,
+      description,
+      id: `vid_${Date.now()}`,
     });
 
   } catch (error) {

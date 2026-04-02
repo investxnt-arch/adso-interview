@@ -9,7 +9,6 @@ interface VideoData {
   title: string;
   description: string;
   url: string;
-  contentType: string;
   channel: string;
   views: number;
   time: string;
@@ -36,10 +35,6 @@ export default function UploadPage() {
         setError('Invalid file type. Please upload MP4, MOV, or WEBM');
         return;
       }
-      if (selectedFile.size > 100 * 1024 * 1024) {
-        setError('File too large. Max 100MB.');
-        return;
-      }
       setFile(selectedFile);
       setError('');
     }
@@ -57,110 +52,68 @@ export default function UploadPage() {
     setSuccess('');
     setProgress(0);
 
-    try {
-      // 1. Obtener firma del servidor
-      const timestamp = Math.floor(Date.now() / 1000);
-      const signRes = await fetch('/api/cloudinary-sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          folder: 'adsotube',
-          public_id: `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`,
-          timestamp,
-        }),
-      });
-      
-      if (!signRes.ok) {
-        throw new Error('Failed to get signature');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('description', description);
+
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        setProgress(Math.round((event.loaded * 100) / event.total));
       }
-      
-      const { signature, api_key, cloud_name } = await signRes.json();
-      
-      console.log('✅ Cloud name:', cloud_name);
-      console.log('✅ Cloudinary URL:', `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`);
+    });
 
-      // 2. Subir directamente a Cloudinary con firma
-      const formDataCloudinary = new FormData();
-      formDataCloudinary.append('file', file);
-      formDataCloudinary.append('api_key', api_key);
-      formDataCloudinary.append('timestamp', timestamp.toString());
-      formDataCloudinary.append('signature', signature);
-      formDataCloudinary.append('folder', 'adsotube');
-      formDataCloudinary.append('resource_type', 'video');
-
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgress(percent);
-        }
-      });
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            console.log('✅ Video uploaded:', response.secure_url);
-            
-            const newVideo: VideoData = {
-              id: `vid_${Date.now()}`,
-              title,
-              description,
-              url: response.secure_url,
-              contentType: 'video/mp4',
-              channel: 'You',
-              views: 0,
-              time: 'just now',
-              duration: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-              thumbnail: '🎥',
-              createdAt: new Date().toISOString(),
-            };
-            
-            const stored = localStorage.getItem('adsotube_videos');
-            const videos: VideoData[] = stored ? JSON.parse(stored) : [];
-            videos.unshift(newVideo);
-            localStorage.setItem('adsotube_videos', JSON.stringify(videos));
-            
-            setSuccess('✅ Video uploaded! Redirecting...');
-            setTimeout(() => router.push('/dashboard'), 1500);
-          } catch (err) {
-            setError('Error processing response');
-            setUploading(false);
-          }
-        } else {
-          let errorMsg = 'Upload failed';
-          try {
-            const err = JSON.parse(xhr.responseText);
-            errorMsg = err.error?.message || err.message || 'Upload failed';
-          } catch {
-            errorMsg = `Upload failed (HTTP ${xhr.status})`;
-          }
-          setError(errorMsg);
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          console.log('✅ Video uploaded:', response.url);
+          
+          const newVideo: VideoData = {
+            id: response.id ?? `vid_${Date.now()}`,
+            title,
+            description,
+            url: response.url,
+            channel: 'You',
+            views: 0,
+            time: 'just now',
+            duration: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            thumbnail: '🎥',
+            createdAt: new Date().toISOString(),
+          };
+          
+          const stored = localStorage.getItem('adsotube_videos');
+          const videos: VideoData[] = stored ? JSON.parse(stored) : [];
+          videos.unshift(newVideo);
+          localStorage.setItem('adsotube_videos', JSON.stringify(videos));
+          
+          setSuccess('✅ Video uploaded! Redirecting...');
+          setTimeout(() => router.push('/dashboard'), 1500);
+        } catch (err) {
+          setError('Error processing response');
           setUploading(false);
         }
-      };
-      
-      xhr.onerror = () => {
-        setError('Network error. Please check your connection.');
+      } else {
+        let errorMsg = 'Upload failed';
+        try {
+          const err = JSON.parse(xhr.responseText);
+          errorMsg = err.error || 'Upload failed';
+        } catch {
+          errorMsg = `Upload failed (HTTP ${xhr.status})`;
+        }
+        setError(errorMsg);
         setUploading(false);
-      };
-      
-      xhr.ontimeout = () => {
-        setError('Upload timeout. File may be too large.');
-        setUploading(false);
-      };
-      
-      // ✅ URL CORRECTA DE CLOUDINARY
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`;
-      console.log('📤 Uploading to:', cloudinaryUrl);
-      xhr.open('POST', cloudinaryUrl);
-      xhr.send(formDataCloudinary);
-      
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      }
+    };
+    
+    xhr.onerror = () => {
+      setError('Network error. Please check your connection.');
       setUploading(false);
-    }
+    };
+    
+    xhr.open('POST', '/api/upload');
+    xhr.send(formData);
   };
 
   return (
