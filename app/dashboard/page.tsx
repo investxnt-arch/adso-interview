@@ -1,15 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Upload, RefreshCw } from 'lucide-react';
+import { Play, Upload, ThumbsUp, MessageCircle, Share2, RefreshCw } from 'lucide-react';
 
 interface Video {
   id: string;
   title: string;
   url: string;
-  contentType?: string;
   channel: string;
+  views: number;
   time: string;
+  duration: string;
+  thumbnail: string;
+  description?: string;
 }
 
 export default function DashboardPage() {
@@ -17,31 +20,27 @@ export default function DashboardPage() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Cargar videos del localStorage al iniciar
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('adsotube_videos');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setVideos(parsed);
-        if (parsed.length > 0) setSelectedVideo(parsed[0]);
+    const stored = localStorage.getItem('adsotube_videos');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setVideos(parsed);
+      if (parsed.length > 0) {
+        setSelectedVideo(parsed[0]);
       }
-    } catch (err) {
-      console.error('Error loading videos:', err);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, []);
 
   const refreshVideos = () => {
-    try {
-      const stored = localStorage.getItem('adsotube_videos');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setVideos(parsed);
-        if (parsed.length > 0 && !selectedVideo) setSelectedVideo(parsed[0]);
+    const stored = localStorage.getItem('adsotube_videos');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setVideos(parsed);
+      if (parsed.length > 0 && !selectedVideo) {
+        setSelectedVideo(parsed[0]);
       }
-    } catch (err) {
-      console.error('Error refreshing:', err);
     }
   };
 
@@ -58,9 +57,10 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6">
         <div className="text-6xl">🎥</div>
         <h2 className="text-2xl font-bold text-[#FFE500]">No videos yet</h2>
+        <p className="text-gray-400">Upload your first video to get started</p>
         <Link
           href="/dashboard/upload"
-          className="bg-[#FF006E] text-white px-8 py-4 rounded-xl font-bold"
+          className="bg-[#FF006E] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#FF006E]/80 transition-all"
         >
           UPLOAD FIRST VIDEO
         </Link>
@@ -78,20 +78,20 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-[#FFE500]">ADSOTUBE</h1>
           <button
             onClick={refreshVideos}
-            className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1]"
+            className="flex items-center gap-2 text-gray-400 hover:text-[#00FFD1] transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
             <span>Refresh</span>
           </button>
         </div>
 
-        {/* Video Player SIMPLE - sin errores */}
+        {/* Video Player */}
         <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1]">
           <video
+            key={currentVideo.url}
             src={currentVideo.url}
             controls
             className="w-full h-full object-contain"
-            style={{ backgroundColor: 'black' }}
           >
             Your browser does not support video playback.
           </video>
@@ -101,20 +101,23 @@ export default function DashboardPage() {
         <div className="mt-6">
           <h2 className="text-2xl font-bold text-[#FFE500]">{currentVideo.title}</h2>
           <p className="text-[#00FFD1] mt-1">{currentVideo.channel}</p>
-          <p className="text-gray-500 text-sm mt-1">{currentVideo.time}</p>
+          <p className="text-gray-500 text-sm mt-1">{currentVideo.views} views • {currentVideo.time}</p>
+          {currentVideo.description && (
+            <p className="mt-4 text-gray-400">{currentVideo.description}</p>
+          )}
         </div>
 
         {/* More Videos */}
         {videos.length > 1 && (
           <div className="mt-12">
-            <h2 className="text-xl font-bold mb-4 text-[#FF006E]">MORE VIDEOS</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#FF006E]">YOUR VIDEOS</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {videos.slice(0, 8).map((video) => (
+              {videos.map((video) => (
                 <div
                   key={video.id}
                   onClick={() => setSelectedVideo(video)}
                   className={`cursor-pointer p-2 rounded-lg transition-all ${
-                    currentVideo.id === video.id
+                    selectedVideo?.id === video.id
                       ? 'bg-[#00FFD1]/10 border border-[#00FFD1]'
                       : 'hover:bg-gray-900'
                   }`}
@@ -130,7 +133,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Upload Button */}
+      {/* Floating upload button */}
       <Link
         href="/dashboard/upload"
         className="fixed bottom-8 right-8 bg-[#FF006E] text-white p-4 rounded-full shadow-[0_0_30px_#FF006E] hover:bg-[#FF006E]/80 transition-all z-50"
