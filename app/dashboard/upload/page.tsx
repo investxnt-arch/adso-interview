@@ -75,6 +75,9 @@ export default function UploadPage() {
       }
       
       const { signature, api_key, cloud_name } = await signRes.json();
+      
+      console.log('✅ Cloud name:', cloud_name);
+      console.log('✅ Cloudinary URL:', `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`);
 
       // 2. Subir directamente a Cloudinary con firma
       const formDataCloudinary = new FormData();
@@ -99,7 +102,6 @@ export default function UploadPage() {
             const response = JSON.parse(xhr.responseText);
             console.log('✅ Video uploaded:', response.secure_url);
             
-            // Guardar en localStorage
             const newVideo: VideoData = {
               id: `vid_${Date.now()}`,
               title,
@@ -148,7 +150,10 @@ export default function UploadPage() {
         setUploading(false);
       };
       
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`);
+      // ✅ URL CORRECTA DE CLOUDINARY
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/video/upload`;
+      console.log('📤 Uploading to:', cloudinaryUrl);
+      xhr.open('POST', cloudinaryUrl);
       xhr.send(formDataCloudinary);
       
     } catch (err) {
