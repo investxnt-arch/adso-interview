@@ -2,18 +2,24 @@ import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-interface VideoPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function WatchPage({ params }: VideoPageProps) {
+export default async function WatchPage({ params }: { params: { id: string } }) {
   const { id } = params;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-[#FF006E] mb-4">Configuration Error</h1>
+          <p className="text-gray-400">Missing Supabase configuration.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const { data: video, error } = await supabase
     .from('videos')
@@ -37,12 +43,7 @@ export default async function WatchPage({ params }: VideoPageProps) {
         </div>
 
         <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1]">
-          <video
-            src={video.url}
-            controls
-            className="w-full h-full object-contain"
-            autoPlay
-          >
+          <video src={video.url} controls className="w-full h-full object-contain" autoPlay>
             Your browser does not support video playback.
           </video>
         </div>
