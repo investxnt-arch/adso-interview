@@ -14,13 +14,12 @@ export default async function WatchPage({ params }: VideoPageProps) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-  // Si no hay variables, mostrar error amigable
   if (!supabaseUrl || !supabaseKey) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-[#FF006E] mb-4">Configuration Error</h1>
-          <p className="text-gray-400">Missing Supabase configuration. Please contact support.</p>
+          <p className="text-gray-400">Missing Supabase configuration</p>
           <Link href="/" className="text-[#00FFD1] mt-4 inline-block">← GO HOME</Link>
         </div>
       </div>
@@ -51,12 +50,7 @@ export default async function WatchPage({ params }: VideoPageProps) {
         </div>
 
         <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1]">
-          <video
-            src={video.url}
-            controls
-            className="w-full h-full object-contain"
-            autoPlay
-          >
+          <video src={video.url} controls className="w-full h-full object-contain" autoPlay>
             Your browser does not support video playback.
           </video>
         </div>
