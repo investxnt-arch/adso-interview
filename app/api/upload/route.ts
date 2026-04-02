@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -57,7 +57,17 @@ export async function POST(request: Request) {
 
     const videoUrl = (result as any).secure_url;
 
-    // ✅ Guardar en Supabase
+    // ✅ Crear cliente de Supabase directamente en la API
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase env vars');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { data, error: supabaseError } = await supabase
       .from('videos')
       .insert({
@@ -73,7 +83,7 @@ export async function POST(request: Request) {
 
     if (supabaseError) {
       console.error('❌ Supabase error:', supabaseError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
+      return NextResponse.json({ error: 'Database error: ' + supabaseError.message }, { status: 500 });
     }
 
     console.log('✅ Saved to Supabase:', data);
