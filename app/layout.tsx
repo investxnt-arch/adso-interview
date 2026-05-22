@@ -1,32 +1,23 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { SessionProvider } from 'next-auth/react';
-import './globals.css';
-import { PlayerProvider } from '@/contexts/PlayerContext';
-import GlobalPlayer from '@/components/GlobalPlayer';
-
-const inter = Inter({ subsets: ['latin'] });
+// app/layout.tsx
+import type { Metadata } from "next"
+import "./globals.css"
+import { Providers } from "./providers"
 
 export const metadata: Metadata = {
-  title: 'ADSOTUBE',
-  description: 'Create, Share, Dominate',
-};
+  title: "ADSOTUBE - Cyberpunk Video Platform",
+  description: "The ultimate platform for next-gen creators",
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <SessionProvider>
-          <PlayerProvider>
-            {children}
-            <GlobalPlayer />
-          </PlayerProvider>
-        </SessionProvider>
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }

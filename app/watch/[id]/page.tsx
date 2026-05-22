@@ -1,101 +1,90 @@
-import { createClient } from '@supabase/supabase-js';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
+// app/watch/[id]/page.tsx
+'use client'
 
-interface VideoPageProps {
-  params: {
-    id: string;
-  };
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+
+interface VideoData {
+  id: string
+  title: string
+  url: string
+  thumbnail?: string
+  description?: string
 }
 
-export default async function WatchPage({ params }: VideoPageProps) {
-  const { id } = params;
+export default function WatchPage() {
+  const { id } = useParams()
+  const [video, setVideo] = useState<VideoData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
+  useEffect(() => {
+    if (!id) return
 
-  if (!supabaseUrl || !supabaseKey) {
+    const fetchVideo = async () => {
+      try {
+        const response = await fetch(`/api/videos/${id}`)
+        if (!response.ok) throw new Error('Video no encontrado')
+        const data = await response.json()
+        setVideo(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar el video')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVideo()
+  }, [id])
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-[#FF006E] mb-4">Configuration Error</h1>
-          <p className="text-gray-400">Missing Supabase configuration</p>
-          <Link href="/" className="text-[#00FFD1] mt-4 inline-block">← GO HOME</Link>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-400">Cargando video...</p>
         </div>
       </div>
-    );
+    )
   }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { data: video, error } = await supabase
-    .from('videos')
-    .select('*')
-    .eq('id', id)
-    .single();
 
   if (error || !video) {
-    notFound();
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-500">Error</h1>
+          <p className="text-gray-400 mt-2">{error || 'Video no encontrado'}</p>
+        </div>
+      </div>
+    )
   }
 
-  const shareUrl = `https://podcast-saas-six.vercel.app/watch/${video.id}`;
-
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="mb-6">
-          <Link href="/" className="text-[#00FFD1] hover:text-[#FFE500] transition-colors">
-            ← BACK TO HOME
-          </Link>
-        </div>
-
-        <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1]">
-          <video
-            src={video.url}
-            controls
-            className="w-full h-full object-contain"
-            autoPlay
-          >
-            Your browser does not support video playback.
-          </video>
-        </div>
-
-        <div className="mt-6">
-          <h1 className="text-3xl font-bold text-[#FFE500]">{video.title}</h1>
-          <div className="flex items-center gap-4 mt-2">
-            <p className="text-[#00FFD1]">{video.user_name || 'Anonymous'}</p>
-            <p className="text-gray-500 text-sm">
-              {video.views || 0} views • {new Date(video.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          {video.description && (
-            <p className="mt-4 text-gray-400 border-l-4 border-[#FF006E] pl-4">
-              {video.description}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-8 p-4 bg-gray-900/50 rounded-xl border border-gray-800">
-          <h3 className="text-[#00FFD1] font-bold mb-2">Share this video</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={shareUrl}
-              readOnly
-              className="flex-1 bg-black border border-gray-800 rounded-lg px-4 py-2 text-white text-sm"
-            />
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(shareUrl);
-                alert('Link copied to clipboard!');
-              }}
-              className="bg-[#FF006E] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#FF006E]/80 transition-colors"
+    <div className="min-h-screen bg-black py-8">
+      <div className="container mx-auto px-4">
+        {/* Reproductor de video nativo HTML5 */}
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+            <video
+              key={video.url}
+              src={video.url}
+              controls
+              autoPlay
+              className="w-full h-full"
+              controlsList="nodownload"
             >
-              Copy Link
-            </button>
+              Tu navegador no soporta reproducción de video.
+            </video>
+          </div>
+          
+          <div className="mt-4">
+            <h1 className="text-2xl font-bold text-white">{video.title}</h1>
+            {video.description && (
+              <p className="text-gray-400 mt-2">{video.description}</p>
+            )}
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

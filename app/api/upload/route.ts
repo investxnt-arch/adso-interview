@@ -1,106 +1,57 @@
-import { v2 as cloudinary } from 'cloudinary';
-import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+﻿// app/api/upload/route.ts
+import { NextResponse, NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
+import { PrismaClient } from '@prisma/client'
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const prisma = new PrismaClient()
 
-export const runtime = 'nodejs';
-export const maxDuration = 60;
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get('session')
+
+    if (!sessionCookie) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    let sessionData
+    try {
+      sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString())
+      if (sessionData.expires < Date.now()) {
+        return NextResponse.json({ error: 'Sesión expirada' }, { status: 401 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 })
     }
 
-    console.log('📤 Uploading file:', file.name, file.size, file.type);
+    const body = await request.json()
+    const { title, description, url, user_name } = body
 
-    // Subir a Cloudinary
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'auto',
-          folder: 'adsotube',
-          upload_preset: 'adsotube_upload',
-          public_id: `${Date.now()}-${title.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`,
-        },
-        (error, result) => {
-          if (error) {
-            console.error('❌ Cloudinary error:', error);
-            reject(error);
-          } else {
-            console.log('✅ Cloudinary success:', result?.secure_url);
-            resolve(result);
-          }
-        }
-      );
-      uploadStream.end(buffer);
-    });
-
-    const videoUrl = (result as any).secure_url;
-
-    // ✅ Crear cliente de Supabase directamente en la API
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase env vars');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    if (!url) {
+      return NextResponse.json({ error: 'La URL del video es requerida' }, { status: 400 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const { data, error: supabaseError } = await supabase
-      .from('videos')
-      .insert({
-        title,
-        description,
-        url: videoUrl,
-        user_id: session.user.id,
-        user_name: session.user.name || 'Anonymous',
+    // ✅ Guardar en Supabase correctamente
+    const video = await prisma.videos.create({
+      data: {
+        title: title || 'Video sin título',
+        description: description || '',
+        url: url,
+        user_id: sessionData.userId || 'desconocido',
+        user_name: user_name || sessionData.email?.split('@')[0] || 'Usuario',
         views: 0,
-        likes: 0,
-      })
-      .select();
-
-    if (supabaseError) {
-      console.error('❌ Supabase error:', supabaseError);
-      return NextResponse.json({ error: 'Database error: ' + supabaseError.message }, { status: 500 });
-    }
-
-    console.log('✅ Saved to Supabase:', data);
+        likes: 0
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      url: videoUrl,
-      title,
-      description,
-      id: data?.[0]?.id,
-    });
+      message: 'Video subido correctamente',
+      video
+    }, { status: 201 })
 
   } catch (error) {
-    console.error('❌ Upload error:', error);
-    return NextResponse.json(
-      { error: 'Upload failed: ' + (error instanceof Error ? error.message : 'Unknown error') },
-      { status: 500 }
-    );
+    console.error('Upload error:', error)
+    return NextResponse.json({ error: 'Error al subir el video' }, { status: 500 })
   }
 }

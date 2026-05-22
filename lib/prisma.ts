@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+// lib/prisma.ts
+// Prisma está desactivado temporalmente
+// Este archivo evita errores de importación
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
+export const prisma = null
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export default null

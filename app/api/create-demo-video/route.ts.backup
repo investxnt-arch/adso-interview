@@ -1,0 +1,23 @@
+// app/api/create-demo-video/route.ts
+import { NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+export async function GET() {
+  try {
+    const demoVideo = await prisma.video.create({
+      data: {
+        title: 'Video de Demostración',
+        description: 'Este video funciona perfectamente',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        user_name: 'Demo User',
+        views: 0,
+        likes: 0
+      }
+    })
+    return NextResponse.json({ message: 'Video de demostración creado', video: demoVideo })
+  } catch (error) {
+    return NextResponse.json({ error: 'Error al crear video' }, { status: 500 })
+  }
+}
