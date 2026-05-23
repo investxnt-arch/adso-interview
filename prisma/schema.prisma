@@ -4,7 +4,7 @@
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres.viqubhgektepoihutvek:Cn6k0wpfpBjskpCG@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
+  url      = env("DATABASE_URL")
 }
 
 model Account {
@@ -92,4 +92,3 @@ model videos {
   @@index([created_at(sort: Desc)], map: "idx_videos_created_at")
   @@index([user_id], map: "idx_videos_user_id")
 }
-
