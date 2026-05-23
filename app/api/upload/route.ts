@@ -1,9 +1,6 @@
-﻿// app/api/upload/route.ts
-import { NextResponse, NextRequest } from 'next/server'
+﻿import { NextResponse, NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,18 +28,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'La URL del video es requerida' }, { status: 400 })
     }
 
-    // ✅ Guardar en Supabase correctamente
-    const video = await prisma.videos.create({
-      data: {
-        title: title || 'Video sin título',
-        description: description || '',
-        url: url,
-        user_id: sessionData.userId || 'desconocido',
-        user_name: user_name || sessionData.email?.split('@')[0] || 'Usuario',
-        views: 0,
-        likes: 0
-      }
-    })
+    const { data: video, error } = await supabase
+      .from('videos')
+      .insert([
+        {
+          title: title || 'Video sin título',
+          description: description || '',
+          url: url,
+          user_id: sessionData.userId || 'desconocido',
+          user_name: user_name || sessionData.email?.split('@')[0] || 'Usuario',
+          views: 0,
+          likes: 0
+        }
+      ])
+      .select()
+      .single()
+
+    if (error) throw error
 
     return NextResponse.json({
       success: true,
