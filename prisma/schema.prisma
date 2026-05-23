@@ -1,4 +1,4 @@
-generator client {
+﻿generator client {
   provider = "prisma-client-js"
 }
 
@@ -92,3 +92,4 @@ model videos {
   @@index([created_at(sort: Desc)], map: "idx_videos_created_at")
   @@index([user_id], map: "idx_videos_user_id")
 }
+
