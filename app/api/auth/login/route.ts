@@ -10,9 +10,10 @@ export async function POST(request: NextRequest) {
       password
     })
 
-    if (error) throw error
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 401 })
+    }
 
-    // Guardar sesión
     const sessionData = {
       userId: data.user.id,
       email: data.user.email,
@@ -24,6 +25,6 @@ export async function POST(request: NextRequest) {
     response.cookies.set('session', sessionCookie, { httpOnly: true, path: '/', maxAge: 7 * 24 * 60 * 60 })
     return response
   } catch (error) {
-    return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
+    return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 })
   }
 }
