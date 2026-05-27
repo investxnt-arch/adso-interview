@@ -1,10 +1,12 @@
 ﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
+  reactStrictMode: true,
+  swcMinify: true,
+  images: {
+    domains: ['viqubhgektepoihutvek.supabase.co'],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
+  typescript: {
+    ignoreBuildErrors: false,
   },
 }
 
