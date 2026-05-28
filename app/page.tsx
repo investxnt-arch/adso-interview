@@ -1,91 +1,157 @@
-// app/page.tsx
-'use client'
+﻿"use client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
+export default function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-export default function HomePage() {
-  const [glitch, setGlitch] = useState(false)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setGlitch(true)
-      setTimeout(() => setGlitch(false), 150)
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [])
+    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup"
+    const body = isLogin ? { email, password } : { email, password, name }
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        router.push("/dashboard")
+      } else {
+        setError(data.error || "Error")
+      }
+    } catch (err) {
+      setError("Error de conexión")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGithubLogin = () => {
+    window.location.href = "/api/auth/github"
+  }
+
+  const handleGoogleLogin = () => {
+    window.location.href = "/api/auth/google"
+  }
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Cyberpunk Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,209,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,209,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-      
-      {/* Scanning Lines - VISIBLE left to right */}
-      <div className="absolute top-1/4 left-0 w-full h-[2px] bg-[#00FFD1] shadow-[0_0_20px_#00FFD1] animate-scan-line z-20"></div>
-      <div className="absolute top-2/4 left-0 w-full h-[2px] bg-[#00FFD1] shadow-[0_0_20px_#00FFD1] animate-scan-line-delayed z-20"></div>
-      <div className="absolute top-3/4 left-0 w-full h-[2px] bg-[#00FFD1] shadow-[0_0_20px_#00FFD1] animate-scan-line z-20"></div>
-      
-      {/* Glow effects */}
-      <div className="absolute top-20 left-10 w-96 h-96 bg-[#00FFD1] rounded-full blur-[120px] opacity-10"></div>
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#FF006E] rounded-full blur-[120px] opacity-10"></div>
-
-      {/* LED Lights */}
-      <div className="fixed top-4 right-4 z-50 flex gap-2">
-        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_5px_red]"></div>
-        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse delay-150 shadow-[0_0_5px_yellow]"></div>
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse delay-300 shadow-[0_0_5px_green]"></div>
-      </div>
-
-      <div className="relative z-10 max-w-4xl mx-auto px-6 min-h-screen flex flex-col items-center justify-center text-center">
-        <div className="relative">
-          <h1 className={`text-8xl md:text-9xl font-bold tracking-wider mb-4 transition-all duration-100 ${glitch ? 'translate-x-1 translate-y-0.5' : ''}`}>
-            <span className="text-[#00FFD1]">ADSO</span><span className="text-[#FFE500]">TUBE</span>
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Cyberpunk Header - Responsive */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-wider break-words">
+            <span className="text-[#00FFD1]">ADSO</span>
+            <span className="text-[#FFE500]">TUBE</span>
           </h1>
-          {glitch && (
-            <>
-              <h1 className="absolute top-0 left-0 text-8xl md:text-9xl font-bold tracking-wider opacity-70 -translate-x-1 translate-y-0.5 pointer-events-none">
-                <span className="text-[#FF006E]">ADSO</span><span className="text-[#00FFD1]">TUBE</span>
-              </h1>
-              <h1 className="absolute top-0 left-0 text-8xl md:text-9xl font-bold tracking-wider opacity-70 translate-x-1 -translate-y-0.5 pointer-events-none">
-                <span className="text-[#FFE500]">ADSO</span><span className="text-[#FF006E]">TUBE</span>
-              </h1>
-            </>
-          )}
-        </div>
-        
-        <p className="text-2xl text-[#00FFD1] mb-4 tracking-wider animate-pulse">CREATE · SHARE · DOMINATE</p>
-        <p className="text-gray-400 max-w-xl mx-auto mb-10 text-lg">The ultimate platform for next-gen creators. Upload your voice, reach millions, and make your mark in the digital universe.</p>
-        
-        <div className="flex gap-4">
-          <Link href="/login" className="group relative inline-block bg-[#FF006E] text-white px-10 py-4 rounded-xl font-bold tracking-wider text-lg hover:bg-[#FF006E]/80 transition-all duration-300 shadow-[0_0_20px_#FF006E] hover:shadow-[0_0_35px_#FF006E]">
-            GET STARTED
-          </Link>
+          <div className="h-[2px] bg-gradient-to-r from-transparent via-[#00FFD1] to-transparent w-24 sm:w-32 mx-auto mt-2"></div>
+          <p className="text-[#00FFD1] text-xs mt-2 tracking-wider">UPLOAD · SHARE · DOMINATE</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-8 mt-20">
-          <div><div className="text-2xl font-bold text-[#00FFD1]">1.2M</div><div className="text-xs text-gray-500">ACTIVE USERS</div></div>
-          <div><div className="text-2xl font-bold text-[#00FFD1]">50K+</div><div className="text-xs text-gray-500">VIDEOS</div></div>
-          <div><div className="text-2xl font-bold text-[#00FFD1]">10M+</div><div className="text-xs text-gray-500">VIEWS</div></div>
-          <div><div className="text-2xl font-bold text-[#00FFD1]">25K+</div><div className="text-xs text-gray-500">CREATORS</div></div>
+        {/* Form Container */}
+        <div className="bg-black/80 backdrop-blur-sm border-2 border-[#00FFD1]/30 rounded-xl p-4 sm:p-8 shadow-[0_0_30px_rgba(0,255,209,0.1)]">
+          <h2 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6">
+            <span className="bg-gradient-to-r from-[#00FFD1] to-[#FF006E] bg-clip-text text-transparent">
+              {isLogin ? "LOGIN" : "REGISTER"}
+            </span>
+          </h2>
+
+          {error && (
+            <div className="mb-4 p-2 sm:p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-500 text-xs sm:text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            {!isLogin && (
+              <input
+                type="text"
+                placeholder="USERNAME"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-black/50 border-2 border-[#00FFD1]/50 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-500 text-sm sm:text-base focus:outline-none focus:border-[#00FFD1] transition-all"
+                required
+              />
+            )}
+            <input
+              type="email"
+              placeholder="EMAIL"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-black/50 border-2 border-[#00FFD1]/50 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-500 text-sm sm:text-base focus:outline-none focus:border-[#00FFD1] transition-all"
+              required
+            />
+            <input
+              type="password"
+              placeholder="PASSWORD"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-black/50 border-2 border-[#00FFD1]/50 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-500 text-sm sm:text-base focus:outline-none focus:border-[#00FFD1] transition-all"
+              required
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#FF006E] to-[#FF006E]/80 text-white py-2 sm:py-3 rounded-lg font-bold tracking-wider text-sm sm:text-base hover:shadow-[0_0_20px_#FF006E] transition-all disabled:opacity-50"
+            >
+              {loading ? "PROCESSING..." : isLogin ? "LOGIN" : "REGISTER"}
+            </button>
+          </form>
+
+          <div className="relative my-4 sm:my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#00FFD1]/30"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-black px-2 text-gray-500">OR</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 sm:space-y-3">
+            <button
+              onClick={handleGithubLogin}
+              className="w-full bg-gray-800/50 border border-gray-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:border-[#00FFD1] transition-all"
+            >
+              <span className="text-lg sm:text-xl">🐙</span> CONTINUE WITH GITHUB
+            </button>
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full bg-gray-800/50 border border-gray-700 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base flex items-center justify-center gap-2 hover:border-[#00FFD1] transition-all"
+            >
+              <span className="text-lg sm:text-xl">G</span> CONTINUE WITH GOOGLE
+            </button>
+          </div>
+
+          <div className="mt-4 sm:mt-6 text-center">
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-[#00FFD1] hover:text-[#00FFD1]/80 text-xs sm:text-sm transition-all"
+            >
+              {isLogin ? "CREATE ACCOUNT →" : "← BACK TO LOGIN"}
+            </button>
+          </div>
+        </div>
+
+        {/* Cyberpunk Decorations */}
+        <div className="text-center mt-4 text-gray-600 text-xs">
+          <span className="inline-block w-1 h-1 bg-[#00FFD1] rounded-full mx-1"></span>
+          <span className="inline-block w-1 h-1 bg-[#FF006E] rounded-full mx-1"></span>
+          <span className="inline-block w-1 h-1 bg-[#FFE500] rounded-full mx-1"></span>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes scan-line {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        @keyframes scan-line-delayed {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .animate-scan-line { animation: scan-line 8s linear infinite; }
-        .animate-scan-line-delayed { animation: scan-line-delayed 8s linear infinite 2s; }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        .delay-150 { animation-delay: 150ms; }
-        .delay-300 { animation-delay: 300ms; }
-      `}</style>
     </div>
   )
 }
