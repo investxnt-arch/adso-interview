@@ -1,9 +1,13 @@
 ﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
-    domains: ['viqubhgektepoihutvek.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'viqubhgektepoihutvek.supabase.co',
+      },
+    ],
   },
 }
 
