@@ -11,7 +11,9 @@ export async function POST(request: NextRequest) {
       options: { data: { name } }
     })
 
-    if (error) throw error
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
 
     const sessionData = {
       userId: data.user?.id,
