@@ -1,4 +1,4 @@
-﻿// app/dashboard/page.tsx (solo la parte del video player)
+﻿// app/dashboard/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
@@ -47,9 +47,6 @@ export default function DashboardPage() {
       if (data.videos && data.videos.length > 0) {
         setVideos(data.videos)
         setCurrentVideo(data.videos[0])
-      } else {
-        setVideos([])
-        setCurrentVideo(null)
       }
     } catch (error) { console.error(error) }
   }
@@ -85,14 +82,6 @@ export default function DashboardPage() {
         }
       }
     } catch (error) { console.error(error) }
-  }
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) videoRef.current.pause()
-      else videoRef.current.play()
-      setIsPlaying(!isPlaying)
-    }
   }
 
   const logout = async () => {
@@ -134,7 +123,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* VIDEO PLAYER - Tamaño fijo en móvil */}
+        {/* VIDEO PLAYER */}
         {currentVideo && (
           <>
             <div className="aspect-video bg-black rounded-2xl overflow-hidden border-2 border-[#00FFD1] shadow-[0_0_30px_#00FFD1] relative max-w-full mx-auto">
@@ -143,7 +132,7 @@ export default function DashboardPage() {
                 src={currentVideo.url} 
                 className="w-full h-full object-contain" 
                 controls 
-                playsinline
+                playsInline
                 onPlay={() => setIsPlaying(true)} 
                 onPause={() => setIsPlaying(false)} 
               />
