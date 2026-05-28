@@ -71,8 +71,16 @@ export default function DashboardPage() {
   const deleteVideo = async (id: string) => {
     if (!confirm('¿Eliminar este video permanentemente?')) return
     try {
-      await fetch(`/api/videos/${id}`, { method: 'DELETE' })
-      await loadVideos()
+      const res = await fetch(`/api/videos?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadVideos()
+        if (currentVideo?.id === id && videos.length > 1) {
+          const remainingVideos = videos.filter(v => v.id !== id)
+          setCurrentVideo(remainingVideos[0] || null)
+        } else if (videos.length === 1) {
+          setCurrentVideo(null)
+        }
+      }
     } catch (error) { console.error(error) }
   }
 
@@ -94,7 +102,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="fixed inset-0 bg-[linear-gradient(rgba(0,255,209,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,209,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
-      
+
       <div className="relative z-10 max-w-6xl mx-auto p-6">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-[#00FFD1]/30">
